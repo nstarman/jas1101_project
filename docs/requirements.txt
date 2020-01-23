@@ -1,0 +1,4 @@
+numpy>=1.17.2
+pytest>=5.2.0
+sphinx_markdown_tables
+numpydoc
