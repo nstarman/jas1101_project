@@ -15,6 +15,7 @@
 !/papers/**/figures/*
 # to not ignore a paper, add the path
 # ex: !/papers/_sample/
+!/papers/project_proposal/*
 
 ## Presentations
 # ignores all contents except the figures & ABOUT.txt
@@ -42,7 +43,7 @@ notebooks/**/*.png
 
 # un-comment these for projects before committing
 notebooks/_sample/*
-!papers/_sample/*
+papers/_sample/*
 presentations/_sample/*
 scripts/_sample/*
 src/_sample/*
