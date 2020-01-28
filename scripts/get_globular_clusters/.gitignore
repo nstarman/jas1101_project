@@ -1,0 +1,8 @@
+*.pyc
+__pycache__/*
+data/*
+posvel.txt
+result.txt
+result_orbits.txt
+DR2_RUWE_V1/*
+!output
