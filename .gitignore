@@ -170,3 +170,4 @@ sftp-config\.json
 *.out
 *.fls
 *.fdb_latexmk
+/.vscode
