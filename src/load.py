@@ -58,7 +58,7 @@ def load_summary_table(drct):
     Parameters
     ----------
     drct : str
-        "scripts/get_globular_clusters/"
+        "data/"
 
     Returns
     -------
@@ -153,7 +153,7 @@ def load_globular_cluster(file, clip_at=(1, 15 * u.mas / u.yr)):
 # --------------------------------------------------------------------------
 
 
-def load_all_globular_clusters(drct, ffmt='.csv'):
+def load_all_globular_clusters(drct, ffmt='.ecsv'):
 
     drct = drct if drct.endswith('/') else drct + '/'
 

@@ -2,13 +2,20 @@
 
 # ----------------------------------------------------------------------------
 #
-# TITLE   : Format Result
+# TITLE   : Normalize Globular Clusters
 # PROJECT : JAS1101 Final Project
 #
 # ----------------------------------------------------------------------------
 
 # Docstring
-"""Format result.txt into an astropy ECSV table."""
+"""**DOCSTRING**.
+
+description
+
+Routine Listings
+----------------
+
+"""
 
 __author__ = ["Nathaniel Starkman", "Qing Liu", "Vivian Ngo"]
 
@@ -18,13 +25,20 @@ __author__ = ["Nathaniel Starkman", "Qing Liu", "Vivian Ngo"]
 
 # GENERAL
 import argparse
+
 from typing import Union
+
+
+###############################################################################
+# PARAMETERS
 
 
 ###############################################################################
 # CODE
 ###############################################################################
 
+
+# --------------------------------------------------------------------------
 
 
 ###############################################################################
@@ -35,54 +49,45 @@ from typing import Union
 def main(opts: Union[argparse.ArgumentParser, None]):
     """Script Function.
 
-    This function runs the complete set of scripts in this module.
-    See README for a description of each component script.
-
     Parameters
     ----------
     opts : ArgumentParser or None
-        must contain `output_dir`, `data_dir`
 
     """
-
-    # 1) Query Gaia Archive
-    # This script was written by Eugene
-    from .query_gaia_archive import main as run_query
-    run_query()
-
-    # 2) Run fit
-    # This script, written by Eugene, runs on import
-    from .run_fit import main as run_gc_fit
-    run_gc_fit()
-
-    # 3) Run orbit
-    # This script, written by Eugene, runs on import
-    from .run_orbits import main as run_gc_orbits
-    run_gc_orbits()
-
-    # 4) Reformat results, saving to /data
-    from .format_results import main as format_results_function
-
     if opts is None:
         parser = argparse.ArgumentParser()
         parser.add_argument(
             "--output_dir",
             type=str,
             default="../../data",
+            help="The data directory",
         )
         parser.add_argument(
-            "--data_dir",
-            type=str,
-            default="data",
+            "--threshold",
+            type=float,
+            default=0.80,
         )
         opts, args = parser.parse_args()
 
-    format_results_function(opts)
+    print('OK')
+
+    # 1. MAD clip at 5-sigma
+
+    # 2. Do simultaneous GMM fitting
+
+    # 3. Predict Cluster, returning probability(x | threshold)
+
+    # 4. PM scale size from 2D Gaussian
+    #     Right now simplify to 1 number, but in future, keep as shape matrix
+
+    # 5. export table of PM scales
+
+    pass
+
 
 # /def
 
-# ------------------------------------------------------------------------
-
+# --------------------------------------------------------------------------
 
 if __name__ == "__main__":
 
@@ -94,17 +99,16 @@ if __name__ == "__main__":
         help="The data directory",
     )
     parser.add_argument(
-        "--data_dir",
-        type=str,
-        default="data",
-        help="The input data directory",
+        "--threshold",
+        dest="threshold",
+        default=0.80,
+        help="The cluster membership probability threshold",
     )
+    opts, args = parser.parse_args()
 
-    options, args = parser.parse_args()
+    main(opts)
 
-    main(options)
-
-# /def
+# /if
 
 
 ###############################################################################

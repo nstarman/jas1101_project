@@ -120,17 +120,17 @@ class GlobularCluster(object):
 
         Load from a directory in the following format:
             result.txt
-            output/"globular "
+            gcs/"globular "
 
         Parameters
         ----------
         drct: str
-            the get_globular_clusters path
+            the data/ path
 
         """
         summary = load_summary_table(drct)
         star_table, _ = load_globular_cluster(
-            drct + "output/" + name + ".csv", clip_at=False
+            drct + "gcs/" + name + ".ecsv", clip_at=False
         )
 
         return cls(name, summary, star_table, clip_at=clip_at)
@@ -168,7 +168,7 @@ class GlobularCluster(object):
     def makeGMMs(self, bins, plot=True):
         """Make a GMM of radial vs kind"""
         self._bins = bins
-        self.GMMx = GMM_bins(self.r, self.df["pmx"], bins)
+        self.GMM = GMM_bins(self.r, self.df["pmx"], bins)
         return self.GMM
 
     def runGMM(self, n_comp=None, max_n_comp=6, plot=True, verbose=False):

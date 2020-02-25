@@ -2,29 +2,42 @@
 
 # ----------------------------------------------------------------------------
 #
-# TITLE   : Format Result
+# TITLE   : SCripts
 # PROJECT : JAS1101 Final Project
 #
 # ----------------------------------------------------------------------------
 
 # Docstring
-"""Format result.txt into an astropy ECSV table."""
+"""**DOCSTRING**.
+
+description
+
+Routine Listings
+----------------
+
+"""
 
 __author__ = ["Nathaniel Starkman", "Qing Liu", "Vivian Ngo"]
-
 
 ###############################################################################
 # IMPORTS
 
 # GENERAL
 import argparse
+
 from typing import Union
+
+
+###############################################################################
+# PARAMETERS
 
 
 ###############################################################################
 # CODE
 ###############################################################################
 
+
+# --------------------------------------------------------------------------
 
 
 ###############################################################################
@@ -35,34 +48,11 @@ from typing import Union
 def main(opts: Union[argparse.ArgumentParser, None]):
     """Script Function.
 
-    This function runs the complete set of scripts in this module.
-    See README for a description of each component script.
-
     Parameters
     ----------
     opts : ArgumentParser or None
-        must contain `output_dir`, `data_dir`
 
     """
-
-    # 1) Query Gaia Archive
-    # This script was written by Eugene
-    from .query_gaia_archive import main as run_query
-    run_query()
-
-    # 2) Run fit
-    # This script, written by Eugene, runs on import
-    from .run_fit import main as run_gc_fit
-    run_gc_fit()
-
-    # 3) Run orbit
-    # This script, written by Eugene, runs on import
-    from .run_orbits import main as run_gc_orbits
-    run_gc_orbits()
-
-    # 4) Reformat results, saving to /data
-    from .format_results import main as format_results_function
-
     if opts is None:
         parser = argparse.ArgumentParser()
         parser.add_argument(
@@ -75,14 +65,31 @@ def main(opts: Union[argparse.ArgumentParser, None]):
             type=str,
             default="data",
         )
+        parser.add_argument(
+            "--threshold",
+            type=float,
+            default=0.80,
+        )
         opts, args = parser.parse_args()
 
-    format_results_function(opts)
+    # 1) Get the globular clusters
+    from .get_globular_clusters import main as get_gcs
+    get_gcs(opts)
+
+    # 2) Do the proper motion normalization
+    from .normalize_globular_clusters import main as normalize_gcs
+    normalize_gcs(opts)
+
+    # 3) Run stacking pipeline
+    # TODO
+
+    # 4) Run analysis pipeline
+    # TODO
 
 # /def
 
-# ------------------------------------------------------------------------
 
+# --------------------------------------------------------------------------
 
 if __name__ == "__main__":
 
@@ -99,12 +106,17 @@ if __name__ == "__main__":
         default="data",
         help="The input data directory",
     )
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=0.80,
+        help="The cluster membership probability threshold",
+    )
+    opts, args = parser.parse_args()
 
-    options, args = parser.parse_args()
+    main(opts)
 
-    main(options)
-
-# /def
+# /if
 
 
 ###############################################################################
