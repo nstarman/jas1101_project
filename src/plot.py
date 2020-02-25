@@ -304,14 +304,14 @@ def plot_gc_hist2d_summary(gc):
 
     plt.sca(axs[1, 1])
     H, xb, yb, _ = axs[1, 1].hist2d(
-        gc.df["pmx"].value,
-        gc.df["pmy"].value,
+        gc.table["pmx"].value,
+        gc.table["pmy"].value,
         bins=100,
         # norm=LogNorm(),
         cmap="gnuplot2",
     )
-    plt.xlabel("v_x [{}]".format(gc.df["pmx"].unit))
-    plt.ylabel("v_y [{}]".format(gc.df["pmy"].unit))
+    plt.xlabel("v_x [{}]".format(gc.table["pmx"].unit))
+    plt.ylabel("v_y [{}]".format(gc.table["pmy"].unit))
 
     plt.tight_layout()
 

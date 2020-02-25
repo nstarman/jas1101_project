@@ -8,13 +8,12 @@
 #
 # ----------------------------------------------------------------------------
 
-"""initialization file for __________.
+"""Globular Cluster Class.
 
-description
 
 Routine Listings
 ----------------
-module
+GlobularCluster
 
 """
 
@@ -25,7 +24,6 @@ __all__ = ["GlobularCluster"]
 # IMPORTS
 
 # GENERAL
-# import numpy as np
 import astropy.units as u
 
 # CUSTOM
@@ -40,7 +38,7 @@ from .GMM import GMM_bins
 ##############################################################################
 # PARAMETERS
 
-dmls = u.dimensionless_unscaled
+dmls = u.dimensionless_unscaled  # shortcut
 
 
 ##############################################################################
@@ -49,12 +47,16 @@ dmls = u.dimensionless_unscaled
 
 
 class GlobularCluster(object):
-    """docstring for GlobularCluster"""
+    """Globular Cluster Class."""
 
     def __init__(
-        self, name, property_table, star_table, clip_at=(1., 20 * u.mas / u.yr)
+        self,
+        name,
+        property_table,
+        star_table,
+        clip_at=(1.0, 20 * u.mas / u.yr),
     ):
-        """GlobularCluster
+        """Create Globular Cluster from Data.
 
         Parameters
         ----------
@@ -88,7 +90,7 @@ class GlobularCluster(object):
 
         # ----------------------------
 
-        self.df_full = star_table
+        self.table_full = star_table
         if clip_at:
             sel = (
                 (star_table["r"] < clip_at[0] * self.rc_ang)
@@ -96,35 +98,35 @@ class GlobularCluster(object):
                 & (star_table["pm"] < clip_at[1])
             )
 
-            self.df = star_table[sel]
+            self.table = star_table[sel]
 
         else:
-            self.df = star_table
+            self.table = star_table
         # storing sub-properties
 
         # angular
         # adjusted for distance is the same.
-        self.x = (self.df["x"] / self.rc_ang).decompose().to_value(dmls)
-        self.y = (self.df["y"] / self.rc_ang).decompose().to_value(dmls)
-        self.r = (self.df["r"] / self.rc_ang).decompose().to_value(dmls)
-            
+        self.x = (self.table["x"] / self.rc_ang).decompose().to_value(dmls)
+        self.y = (self.table["y"] / self.rc_ang).decompose().to_value(dmls)
+        self.r = (self.table["r"] / self.rc_ang).decompose().to_value(dmls)
+
         # TODO: normalized pm replacing .value
-        self.pm = self.df["pm"]
-        self.pmx = self.df["pmx"].value
-        self.pmy = self.df["pmy"].value
-        self.vsky = convert_pm_angular(self.df["pm"][:], self.d)
+        self.pm = self.table["pm"]
+        self.pmx = self.table["pmx"].value
+        self.pmy = self.table["pmy"].value
+        self.vsky = convert_pm_angular(self.table["pm"][:], self.d)
 
         return None
 
     # /def
 
     @classmethod
-    def from_directory(cls, name, drct, clip_at=(1., 20 * u.mas / u.yr)):
-        """From Directory
+    def from_directory(cls, name, drct, clip_at=(1.0, 20 * u.mas / u.yr)):
+        """Load From Directory.
 
         Load from a directory in the following format:
             result.txt
-            output/"globular "
+            output/"globular  "
 
         Parameters
         ----------
@@ -134,7 +136,7 @@ class GlobularCluster(object):
         """
         summary = load_summary_table(drct)
         star_table, _ = load_globular_cluster(
-            drct + "output/" + name + ".csv", clip_at=False
+            drct + "gcs/" + name + ".ecsv", clip_at=False
         )
 
         return cls(name, summary, star_table, clip_at=clip_at)
@@ -144,6 +146,7 @@ class GlobularCluster(object):
     # --------------------------------
 
     def __getitem__(self, name):
+        """__getitem__."""
         return getattr(self, name)
 
     def __setitem__(self, name, value):
@@ -172,7 +175,7 @@ class GlobularCluster(object):
     def makeGMMs(self, bins, plot=True):
         """Make a GMM of radial vs kind"""
         self._bins = bins
-        self.GMMx = GMM_bins(self.r, self.df["pmx"], bins)
+        self.GMMx = GMM_bins(self.r, self.table["pmx"], bins)
         return self.GMM
 
     def runGMM(self, n_comp=None, max_n_comp=6, plot=True, verbose=False):
