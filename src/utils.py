@@ -100,13 +100,22 @@ def convert_pm_angular(velocity, distance) -> u.km / u.s:
 
 # --------------------------------------------------------------------------
 def clip_quantile_nd(z, z_quantile=None, ind_clip=[1,2], return_func=False):
-    """
-    Clip function based on quantile for N-d array [N_samples, N_dimensions]
+    """ Clip function based on quantile for N-d array.
     
-    Parameters:
-    # -------------
-    z_quantile: [lower, upper]  (0~1)
-    ind_clip: clip which columns of z
+    Parameters
+    ----------
+    z : N-d array [N_samples, N_dimensions]
+    z_quantile : quantile [lower, upper]  (float: 0 ~ 1)
+    ind_clip : which columns of z to clip
+    return_func : whether to return a function or the clipped array
+    
+    Example
+    ----------
+    good_pm = clip_quantile_1d(np.vstack([r, pmx, pmy]).T)
+    
+    Return
+    ----------
+    A function or N-d array.
     
     """
     
@@ -124,11 +133,22 @@ def clip_quantile_nd(z, z_quantile=None, ind_clip=[1,2], return_func=False):
         return clip(z)
     
 def clip_quantile_1d(z, z_quantile=None, return_func=False):
-    """
-    Clip function based on given quantile (0~1): [lower, upper]
+    """ Clip function based on given quantile.
     
-    # -------------
-    Example: good_pmx = clip_quantile_1d(GC.pmx)
+    Parameters
+    ----------
+    z : 1d array
+    z_quantile : quantile [lower, upper]  (float: 0 ~ 1)
+    return_func : whether to return a function or the clipped array
+    
+    Example
+    ----------
+    good_pmx = clip_quantile_1d(pmx)
+    
+    Return
+    ----------
+    A function or N-d array.
+    
     """
     
     if z_quantile is None:

@@ -174,12 +174,13 @@ class GMM:
     def run_GMM(
         self, n_comp=None, max_n_comp=10, verbose=True, plot=True, **kwargs
     ):
-        """
-        Perform GMM fitting. Return a scikit-learn Gaussian Mixture Model or a list of them.
-        Note the GMM does not account for uncertainties.
+        """ Perform GMM fitting. Yield a scikit-learn Gaussian Mixture Model
+        or a list of them. Note the GMM does not account for uncertainties.
         
+        Parameters
         -----------
-        n_comp : specified number of components. Use N = argmin(BIC) if not given
+        n_comp : specified number of components. Use N = argmin(BIC) 
+            if n_comp is not given
         max_n_comp : maximum number of component.
         
         """
@@ -287,9 +288,11 @@ class GMM:
         plt.show()
 
     def predict_main_pop(self, k_std=2.5):
-        """ 
-        Predict probability for each sample that it belongs to the main population:
+        """  Predict probability for each sample that it
+            belongs to the main population:
+        
         1D: GMM means located in [median +/- k_std * std]
+        
         """
         if not self.run:
             return None
