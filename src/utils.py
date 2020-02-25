@@ -99,19 +99,67 @@ def convert_pm_angular(velocity, distance) -> u.km / u.s:
 # /def
 
 # --------------------------------------------------------------------------
-
+def clip_quantile_nd(z, z_quantile=None, ind_clip=[1,2], return_func=False):
+    """
+    Clip function based on quantile for N-d array [N_samples, N_dimensions]
+    
+    Parameters:
+    # -------------
+    z_quantile: [lower, upper]  (0~1)
+    ind_clip: clip which columns of z
+    
+    """
+    
+    if z_quantile is None:
+        z_quantile = [0.001, 0.999]
+        
+    z_clip = np.quantile(z, z_quantile, axis=0)
+    n_dim = z.shape[1]
+    
+    clip = lambda z_: np.logical_and.reduce([(z_[:,j] > z_clip[0,j]) & (z_[:,j] < z_clip[1:,j]) for j in ind_clip], axis=0)
+    
+    if return_func:
+        return clip
+    else:
+        return clip(z)
+    
+def clip_quantile_1d(z, z_quantile=None, return_func=False):
+    """
+    Clip function based on given quantile (0~1): [lower, upper]
+    
+    # -------------
+    Example: good_pmx = clip_quantile_1d(GC.pmx)
+    """
+    
+    if z_quantile is None:
+        z_quantile = [0.001, 0.999]
+        
+    z_clip = np.quantile(z, z_quantile)
+    
+    clip = lambda z_: (z_ > z_clip[0]) & (z_ < z_clip[1])
+    
+    if return_func:
+        return clip
+    else:
+        return clip(z)
 
 def profile_binning(
     r,
     z,
-    bins=np.logspace(np.log10(0.1), np.log10(0.5), 11),
+    bins,
     z_name="pm",
-    z_clip=[2, 15],
-    return_bin=False,
+    z_clip=None,
+    z_quantile=None,
+    return_bin=True,
     plot=True,
 ):
-    """Bin the given quantity."""
-    clip = lambda z: (z > z_clip[0]) & (z < z_clip[1])
+    """Bin the given quantity z in r."""
+    
+    if z_clip is None:
+        clip = clip_quantile_1d(z, z_quantile, return_func=True)
+    else:
+        clip = lambda z_: (z_ > z_clip[0]) & (z_ < z_clip[1])
+    
     z_bins = {}
 
     if plot:
@@ -137,11 +185,10 @@ def profile_binning(
             )
 
     r_rbin, z_rbin = get_mean_rbins(z_bins, z_name=z_name)
-
-    if return_bin:
-        return r_rbin, z_rbin, z_bins
-    else:
-        return r_rbin, z_rbin, None
+    
+    z_bins = z_bins if return_bin else None
+    
+    return r_rbin, z_rbin, z_bins
 
 
 # --------------------------------------------------------------------------

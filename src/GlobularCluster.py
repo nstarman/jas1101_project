@@ -33,6 +33,7 @@ import astropy.units as u
 # PROJECT-SPECIFIC
 from .load import load_summary_table, load_globular_cluster
 from .utils import profile_binning, convert_angle, convert_pm_angular
+from .plot import plot_binned_profile
 from .GMM import GMM_bins
 
 
@@ -51,7 +52,7 @@ class GlobularCluster(object):
     """docstring for GlobularCluster"""
 
     def __init__(
-        self, name, property_table, star_table, clip_at=(1, 15 * u.mas / u.yr)
+        self, name, property_table, star_table, clip_at=(1., 20 * u.mas / u.yr)
     ):
         """GlobularCluster
 
@@ -106,8 +107,11 @@ class GlobularCluster(object):
         self.x = (self.df["x"] / self.rc_ang).decompose().to_value(dmls)
         self.y = (self.df["y"] / self.rc_ang).decompose().to_value(dmls)
         self.r = (self.df["r"] / self.rc_ang).decompose().to_value(dmls)
-
+            
+        # TODO: normalized pm replacing .value
         self.pm = self.df["pm"]
+        self.pmx = self.df["pmx"].value
+        self.pmy = self.df["pmy"].value
         self.vsky = convert_pm_angular(self.df["pm"][:], self.d)
 
         return None
@@ -115,22 +119,22 @@ class GlobularCluster(object):
     # /def
 
     @classmethod
-    def from_directory(cls, name, drct, clip_at=(1, 15 * u.mas / u.yr)):
+    def from_directory(cls, name, drct, clip_at=(1., 20 * u.mas / u.yr)):
         """From Directory
 
         Load from a directory in the following format:
             result.txt
-            gcs/"globular "
+            output/"globular "
 
         Parameters
         ----------
         drct: str
-            the data/ path
+            the get_globular_clusters path
 
         """
         summary = load_summary_table(drct)
         star_table, _ = load_globular_cluster(
-            drct + "gcs/" + name + ".ecsv", clip_at=False
+            drct + "output/" + name + ".csv", clip_at=False
         )
 
         return cls(name, summary, star_table, clip_at=clip_at)
@@ -148,13 +152,13 @@ class GlobularCluster(object):
     # --------------------------------
     # Data Processing
 
-    def bin_profile(self, bins, plot=False):
+    def bin_profile(self, bins, z_clip=None, plot=False):
         r_rbin, z_rbin, z_bins = profile_binning(
             self.r,
             #     gcs["r_ang"] * gcP['rscale_ang'].to_value('deg'),  # TODO FIX
             self.pm.value,
-            bins=bins,
-            z_clip=[0, 12],
+            bins,
+            z_clip=z_clip,
             return_bin=True,
             plot=False,
         )
@@ -168,7 +172,7 @@ class GlobularCluster(object):
     def makeGMMs(self, bins, plot=True):
         """Make a GMM of radial vs kind"""
         self._bins = bins
-        self.GMM = GMM_bins(self.r, self.df["pmx"], bins)
+        self.GMMx = GMM_bins(self.r, self.df["pmx"], bins)
         return self.GMM
 
     def runGMM(self, n_comp=None, max_n_comp=6, plot=True, verbose=False):
@@ -182,29 +186,9 @@ class GlobularCluster(object):
     # --------------------------------
     # Plot
 
-    def plot_binned_profile(self, bins=None, z_clip=[0, 12]):
-        import seaborn as sns
-        import matplotlib.pyplot as plt
-
+    def plot_binned_profile(self, bins=None, z_clip=None):
         bins = self._bins if bins is None else bins
-        if bins is None:
-            raise Exception("need to pass bins or call bin_profile")
-
-        sns.set_palette("RdBu", len(bins))
-
-        fig = plt.figure()
-        profile_binning(
-            self.r,
-            self.pm.value,
-            bins=bins,
-            z_clip=[0, 12],
-            return_bin=False,
-            plot=True,
-        )
-        plt.xlabel("pm [mas/yr]")
-        plt.ylabel("density")
-
-        return fig
+        plot_binned_profile(self.r, self.pm.value, bins, z_clip=z_clip)
 
     # /def
 
