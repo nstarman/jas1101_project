@@ -1,46 +1,33 @@
 # -*- coding: utf-8 -*-
 
-# ----------------------------------------------------------------------------
-#
-# TITLE   :
-# AUTHOR  :
-# PROJECT :
-#
-# ----------------------------------------------------------------------------
+"""JAS1101 Final Project.
 
-"""initialization file for __________.
-
-description
-
-Routine Listings
-----------------
-module
+A pipeline to analyze Globular Clusters for the presence of IMBHs.
 
 """
 
-__author__ = ""
-# __copyright__ = "Copyright 2018, "
+__author__ = ["Nathaniel Starkman", "Qing Liu", "Vivian Ngo"]
+__copyright__ = "Copyright 2020"
 # __credits__ = [""]
-# __license__ = "MIT"
-# __version__ = "0.0.0"
-# __maintainer__ = ""
-# __email__ = ""
-# __status__ = "Production"
+__license__ = "BSD-3"
+__version__ = "0.0.0"
+__status__ = "Production"
 
 # __all__ = [
 #     ""
 # ]
+
 
 ##############################################################################
 # IMPORTS
 
 # GENERAL
 
+# astropy
 import astropy.units as u
 from astropy.table import QTable
 from astropy.coordinates import SkyCoord
 
-# CUSTOM
 
 # PROJECT-SPECIFIC
 
@@ -56,7 +43,7 @@ from .utils import profile_binning, convert_angle, convert_pm_angular
 ##############################################################################
 # PARAMETERS
 
-dmls = u.dimensionless_unscaled
+dmls: u.Quantity = u.dimensionless_unscaled
 
 
 ##############################################################################

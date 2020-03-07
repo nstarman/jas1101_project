@@ -1,28 +1,76 @@
+# -*- coding: utf-8 -*-
+
+# ----------------------------------------------------------------------------
+#
+# PROJECT : JAS1101 Final Project
+#
+# ----------------------------------------------------------------------------
+
+# Docstring
+"""Statistics Utilities.
+
+Routine Listings
+----------------
+Stats_output
+get_mean_cov
+confidence_ellipse
+HotelligT2
+HotellingT2Test
+
+"""
+
+__all__ = [
+    "Stats_output",
+    "get_mean_cov",
+    "confidence_ellipse",
+    "HotellingT2",
+    "HotellingT2Test",
+]
+
+
+###############################################################################
+# IMPORTS
+
+# GENERAL
 import numpy as np
 import pandas as pd
-import matplotlib
-import matplotlib.pyplot as plt
-import seaborn as sns
 import scipy
 from scipy import stats
 from scipy.stats import ks_2samp
-import sklearn
-from sklearn.neighbors import KernelDensity
 
-# import statsmodels
-# from statsmodels.distributions.empirical_distribution import ECDF
+# plot
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
-class Stats_output:
-    """
+###############################################################################
+# CODE
+###############################################################################
+
+
+class Stats_output(object):
+    """Statistics output.
+
     This is a script to analyse two different vectors, a prior and a posterior
+
     """
 
     def __init__(self, prior, posterior):
+        """Statistics output.
+
+        Parameters
+        ----------
+        prior : array-like
+        posterior : array-like
+
+        """
         self.prior = prior
         self.posterior = posterior
 
+    # /def
+
     def plots(self):
+        """Plots."""
         # df = pd.DataFrame({'prior': self.prior, 'posterior': posterior})
         # df.plot('self.prior', 'posterior', kind='scatter')
         # df.plot('self.prior', 'posterior', kind='line')
@@ -45,14 +93,19 @@ class Stats_output:
         dflong.groupby(["Name"]).value.plot.hist(alpha=0.3)
         plt.legend()
 
+    # /def
+
     def bootstrap(self, conf_level):
-        """
-        We will use this to find a conf_level % confidence interval for the posterior mean
+        """Bootstrap.
+
+        We will use this to find a conf_level
+        confidence interval for the posterior mean
         confidence level is between 0 and 1
-        :param self:
-        :type self:
-        :return:
-        :rtype:
+
+        Parameters
+        ----------
+        conf_level : float
+
         """
         n = 10000  # n is the number of bootstrap samples
         sample_means = [0] * n
@@ -68,16 +121,16 @@ class Stats_output:
         self.lbound = lbound
         self.ubound = ubound
 
+    # /def
+
     def comparisons(self):
-        """
-        This function calculates the KL divergence between the self.prior and the posterior distribution
-        using scipy's entropy function,
-        Person's correlatino coefficient,
-        2 sample KS divergence test # null hypothesis is that the two distributions are the same
-        :param self:
-        :type self:
-        :return:
-        :rtype:
+        """Comparisons.
+
+        This function calculates the KL divergence between the self.prior and
+        the posterior distribution using scipy's entropy function, Person's
+        correlatino coefficient, 2 sample KS divergence test # null hypothesis
+        is that the two distributions are the same
+
         """
         KL = scipy.stats.entropy(self.prior, self.posterior)
         corr = scipy.stats.pearsonr(
@@ -90,7 +143,16 @@ class Stats_output:
         self.KS_stat = KS.statistic
         self.KS_pval = KS.pvalue
 
+    # /def
+
     def ecdf_survive(self, which="posterior"):
+        """ECDF Survive.
+
+        Parameters
+        ----------
+        which : str
+
+        """
         if which == "posterior":
             vals = self.posterior
         else:
@@ -101,6 +163,11 @@ class Stats_output:
         # empirical survival function
         plt.plot(0)
         plt.plot(ecdf.x, 1 - ecdf.y)
+
+    # /def
+
+
+# /class
 
 
 # you can run, for example:
@@ -119,7 +186,22 @@ class Stats_output:
 # obj.ecdf_survive_post(which="prior")
 
 # --------------------------------------------------------------------------
+
+
 def get_mean_cov(X, robust=True):
+    """Get Mean Covariance.
+
+    Parameters
+    ----------
+    X : array-like
+    robust : bool
+
+    Returns
+    -------
+    mean_tot : array-like
+    cov_tot : array-like
+
+    """
     from astropy.stats.biweight import (
         biweight_midcovariance,
         biweight_location,
@@ -137,8 +219,25 @@ def get_mean_cov(X, robust=True):
     return mean_tot, cov_tot
 
 
+# /def
+
+
 def confidence_ellipse(X, robust=True, verbose=True):
-    """Confidence Ellipse describing 2D data"""
+    """Confidence Ellipse describing 2D data.
+
+    Parameters
+    ----------
+    X : array-like
+    robust : bool, optional
+    verbose : bool, optional
+
+    Returns
+    -------
+    mean_tot : array-like
+    v_tot : array-like
+    angle_tot : array-like
+
+    """
     # Robust confidence ellipse
     mean_tot, cov_tot = get_mean_cov(X, robust=robust)
 
@@ -158,9 +257,22 @@ def confidence_ellipse(X, robust=True, verbose=True):
     return mean_tot, v_tot, angle_tot
 
 
-def HotellingT2(X, robust=True):
-    """Hotelling's T^2 statistics for X [N_samples, N_dimensions]"""
+# /def
 
+
+def HotellingT2(X, robust=True):
+    """Hotelling's T^2 statistics for X [N_samples, N_dimensions].
+
+    Parameters
+    ----------
+    X : array-like
+    robust : bool, optional
+
+    Returns
+    -------
+    list
+
+    """
     mean_tot, cov_tot = get_mean_cov(X, robust=robust)
 
     return [
@@ -171,9 +283,26 @@ def HotellingT2(X, robust=True):
     ]
 
 
-def HotellingT2Test(X, robust=True, plot=True):
-    """Testing whether the observation is abnormal using Hotellig T^2 at confidence level a = 0.01"""
+# /def
 
+
+def HotellingT2Test(X, robust=True, plot=True):
+    """Hotellig T^2 test for abnormallity.
+
+    Testing whether the observation is abnormal using Hotellig T^2 test
+    at confidence level a = 0.01
+
+    Parameters
+    ----------
+    X : array-like
+    robust : bool, optional
+    plot : bool, optional
+
+    Returns
+    -------
+    array-like
+
+    """
     T2 = HotellingT2(X, robust=robust)
 
     if plot:
@@ -185,3 +314,6 @@ def HotellingT2Test(X, robust=True, plot=True):
     normal = T2 < stats.chi2(df=X.shape[1]).ppf(0.99)
 
     return normal
+
+
+# /def

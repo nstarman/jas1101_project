@@ -2,48 +2,40 @@
 
 # ----------------------------------------------------------------------------
 #
-# TITLE   :
-# AUTHOR  :
-# PROJECT :
+# PROJECT : JAS1101 Final Project
 #
 # ----------------------------------------------------------------------------
 
-"""initialization file for __________.
-
-description
+"""Load.
 
 Routine Listings
 ----------------
-module
+load_summary_table
+load_globular_cluster
+load_all_globular_clusters
 
 """
 
-__author__ = ""
-# __copyright__ = "Copyright 2018, "
-# __credits__ = [""]
-# __license__ = "MIT"
-# __version__ = "0.0.0"
-# __maintainer__ = ""
-# __email__ = ""
-# __status__ = "Production"
-
-# __all__ = [
-#     ""
-# ]
+__all__ = [
+    "load_summary_table",
+    "load_globular_cluster",
+    "load_all_globular_clusters",
+]
 
 ##############################################################################
 # IMPORTS
 
 # GENERAL
 
+import os
 import numpy as np
+from tqdm import tqdm
+from collections import OrderedDict
+
 import astropy.units as u
 from astropy.table import QTable
 from astropy.coordinates import SkyCoord
 
-from tqdm import tqdm
-import os
-from collections import OrderedDict
 from astroquery.utils import TableList
 
 
@@ -97,6 +89,7 @@ def load_summary_table(drct):
 
 
 # /def
+
 
 # --------------------------------------------------------------------------
 
@@ -153,9 +146,22 @@ def load_globular_cluster(file, clip_at=(1, 15 * u.mas / u.yr)):
 # --------------------------------------------------------------------------
 
 
-def load_all_globular_clusters(drct, ffmt='.ecsv'):
+def load_all_globular_clusters(drct, ffmt=".ecsv"):
+    """Load all Globular Clusters in directory.
 
-    drct = drct if drct.endswith('/') else drct + '/'
+    Parameters
+    ----------
+    drct : str
+        the directory
+    ffmt : str
+        file format
+
+    Returns
+    -------
+    TableList
+
+    """
+    drct = drct if drct.endswith("/") else drct + "/"
 
     files = os.listdir(drct)
     datafiles = [f for f in files if f.endswith(ffmt)]
@@ -163,13 +169,13 @@ def load_all_globular_clusters(drct, ffmt='.ecsv'):
 
     gcs = OrderedDict()
     for file in tqdm(datafiles):
-        name = file[:-len(ffmt)]
+        name = file[: -len(ffmt)]
         gcs[name], _ = load_globular_cluster(drct + file, clip_at=False)
 
     return TableList(gcs)
 
 
-
+# /def
 
 ##############################################################################
 # END

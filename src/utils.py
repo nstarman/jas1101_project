@@ -1,13 +1,26 @@
 # -*- coding: utf-8 -*-
 
-"""**DOCSTRING**.
-
-description
+"""Utilities.
 
 Routing Listings
 ----------------
+convert_angle
+convert_pm_angular
+clip_quantile_nd
+clip_quantile_1d
+profile_binning
+get_mean_rbins
 
 """
+
+__all__ = [
+    "convert_angle",
+    "convert_pm_angular",
+    "clip_quantile_nd",
+    "clip_quantile_1d",
+    "profile_binning",
+    "get_mean_rbins",
+]
 
 
 ###############################################################################
@@ -15,36 +28,39 @@ Routing Listings
 
 # GENERAL
 import numpy as np
+
+from typing import Optional, Sequence
+
 import astropy.units as u
 
+# plot
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 import seaborn as sns
 
 
-# CUSTOM
-
-# PROJECT-SPECIFIC
-
-
 ###############################################################################
 # PARAMETERS
 
-rcParams.update({"figure.figsize": [7, 5]})
-rcParams.update({"xtick.major.pad": "5.0"})
-rcParams.update({"xtick.major.size": "4"})
-rcParams.update({"xtick.major.width": "1."})
-rcParams.update({"xtick.minor.pad": "5.0"})
-rcParams.update({"xtick.minor.size": "4"})
-rcParams.update({"xtick.minor.width": "0.8"})
-rcParams.update({"ytick.major.pad": "5.0"})
-rcParams.update({"ytick.major.size": "4"})
-rcParams.update({"ytick.major.width": "1."})
-rcParams.update({"ytick.minor.pad": "5.0"})
-rcParams.update({"ytick.minor.size": "4"})
-rcParams.update({"ytick.minor.width": "0.8"})
-rcParams.update({"axes.labelsize": 14})
-rcParams.update({"font.size": 14})
+rcParams.update(
+    {
+        "figure.figsize": [7, 5],
+        "xtick.major.pad": "5.0",
+        "xtick.major.size": "4",
+        "xtick.major.width": "1.",
+        "xtick.minor.pad": "5.0",
+        "xtick.minor.size": "4",
+        "xtick.minor.width": "0.8",
+        "ytick.major.pad": "5.0",
+        "ytick.major.size": "4",
+        "ytick.major.width": "1.",
+        "ytick.minor.pad": "5.0",
+        "ytick.minor.size": "4",
+        "ytick.minor.width": "0.8",
+        "axes.labelsize": 14,
+        "font.size": 14,
+    }
+)
 
 
 ###############################################################################
@@ -54,7 +70,7 @@ rcParams.update({"font.size": 14})
 
 @u.quantity_input(angle=u.deg, distance="length")
 def convert_angle(angle, distance) -> u.kpc:
-    """convert_angle.
+    """Convert Angle.
 
     Parameters
     ----------
@@ -73,12 +89,13 @@ def convert_angle(angle, distance) -> u.kpc:
 
 # /def
 
+
 # --------------------------------------------------------------------------
 
 
 @u.quantity_input(angle=u.mas / u.yr, distance="length")
 def convert_pm_angular(velocity, distance) -> u.km / u.s:
-    """convert_pm_angular.
+    """Convert PM in angular coordinates.
 
     Parameters
     ----------
@@ -99,87 +116,132 @@ def convert_pm_angular(velocity, distance) -> u.km / u.s:
 # /def
 
 # --------------------------------------------------------------------------
-def clip_quantile_nd(z, z_quantile=None, ind_clip=[1,2], return_func=False):
-    """ Clip function based on quantile for N-d array.
-    
+
+
+def clip_quantile_nd(
+    z: np.ndarray,
+    z_quantile: Optional[Sequence] = None,
+    ind_clip: list = [1, 2],
+    return_func: bool = False,
+):
+    """Clip function based on quantile for N-d array.
+
     Parameters
     ----------
-    z : N-d array [N_samples, N_dimensions]
-    z_quantile : quantile [lower, upper]  (float: 0 ~ 1)
-    ind_clip : which columns of z to clip
-    return_func : whether to return a function or the clipped array
-    
+    z : array-like
+        N-d array [N_samples, N_dimensions]
+    z_quantile : list
+        quantile [lower, upper]  (float: 0 ~ 1)
+    ind_clip : array-like
+        which columns of z to clip
+    return_func : bool
+        whether to return a function or the clipped array
+
     Example
-    ----------
+    -------
     good_pm = clip_quantile_1d(np.vstack([r, pmx, pmy]).T)
-    
+
     Return
-    ----------
+    ------
     A function or N-d array.
-    
+
     """
-    
     if z_quantile is None:
         z_quantile = [0.001, 0.999]
-        
+
     z_clip = np.quantile(z, z_quantile, axis=0)
-    n_dim = z.shape[1]
-    
-    clip = lambda z_: np.logical_and.reduce([(z_[:,j] > z_clip[0,j]) & (z_[:,j] < z_clip[1:,j]) for j in ind_clip], axis=0)
-    
-    if return_func:
-        return clip
-    else:
-        return clip(z)
-    
-def clip_quantile_1d(z, z_quantile=None, return_func=False):
-    """ Clip function based on given quantile.
-    
-    Parameters
-    ----------
-    z : 1d array
-    z_quantile : quantile [lower, upper]  (float: 0 ~ 1)
-    return_func : whether to return a function or the clipped array
-    
-    Example
-    ----------
-    good_pmx = clip_quantile_1d(pmx)
-    
-    Return
-    ----------
-    A function or N-d array.
-    
-    """
-    
-    if z_quantile is None:
-        z_quantile = [0.001, 0.999]
-        
-    z_clip = np.quantile(z, z_quantile)
-    
-    clip = lambda z_: (z_ > z_clip[0]) & (z_ < z_clip[1])
-    
+    # n_dim = z.shape[1]
+
+    clip = lambda z_: np.logical_and.reduce(
+        [
+            (z_[:, j] > z_clip[0, j]) & (z_[:, j] < z_clip[1:, j])
+            for j in ind_clip
+        ],
+        axis=0,
+    )
+
     if return_func:
         return clip
     else:
         return clip(z)
 
-def profile_binning(
-    r,
-    z,
-    bins,
-    z_name="pm",
-    z_clip=None,
-    z_quantile=None,
-    return_bin=True,
-    plot=True,
+
+# /def
+
+
+def clip_quantile_1d(
+    z: np.ndarray,
+    z_quantile: Optional[Sequence] = None,
+    return_func: bool = False,
 ):
-    """Bin the given quantity z in r."""
-    
+    """Clip function based on given quantile.
+
+    Parameters
+    ----------
+    z : 1d array
+    z_quantile : quantile [lower, upper]  (float: 0 ~ 1)
+    return_func : whether to return a function or the clipped array
+
+    Example
+    -------
+    good_pmx = clip_quantile_1d(pmx)
+
+    Return
+    ------
+    A function or N-d array.
+
+    """
+    if z_quantile is None:
+        z_quantile = [0.001, 0.999]
+
+    z_clip = np.quantile(z, z_quantile)
+
+    clip = lambda z_: (z_ > z_clip[0]) & (z_ < z_clip[1])
+
+    if return_func:
+        return clip
+    else:
+        return clip(z)
+
+
+# /def
+
+
+def profile_binning(
+    r: np.ndarray,
+    z: np.ndarray,
+    bins: np.ndarray,
+    z_name: str = "pm",
+    z_clip: Optional[dict] = None,
+    z_quantile: Optional[Sequence] = None,
+    return_bin: bool = True,
+    plot: bool = True,
+):
+    """Bin the given quantity z in r.
+
+    Parameters
+    ----------
+    r: array-like
+    z: array-like
+    bins: array-like
+    z_name: str
+    z_clip: dict, optional
+    z_quantile: Sequence, optional
+    return_bin: bool, optional
+    plot: bool, optional
+
+    Returns
+    -------
+    r_rbin : array-like
+    z_rbin : array-like
+    z_bins : dict
+
+    """
     if z_clip is None:
         clip = clip_quantile_1d(z, z_quantile, return_func=True)
     else:
         clip = lambda z_: (z_ > z_clip[0]) & (z_ < z_clip[1])
-    
+
     z_bins = {}
 
     if plot:
@@ -205,17 +267,31 @@ def profile_binning(
             )
 
     r_rbin, z_rbin = get_mean_rbins(z_bins, z_name=z_name)
-    
+
     z_bins = z_bins if return_bin else None
-    
+
     return r_rbin, z_rbin, z_bins
 
+
+# /def
 
 # --------------------------------------------------------------------------
 
 
 def get_mean_rbins(z_bins, z_name="pm"):
-    """Get mean of radial bins."""
+    """Get mean of radial bins.
+
+    Parameters
+    ----------
+    z_bins
+    z_name : str, optional
+
+    Returns
+    -------
+    r_rbin : array-like
+    z_rbin : array-like
+
+    """
     res = np.array(
         [
             [np.mean(val["r"]), np.mean(val[z_name])]

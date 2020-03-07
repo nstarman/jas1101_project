@@ -1,30 +1,82 @@
+# -*- coding: utf-8 -*-
+
+# ----------------------------------------------------------------------------
+#
+# PROJECT : JAS1101 Final Project
+#
+# ----------------------------------------------------------------------------
+
+# Docstring
+"""Gaussian Mixture Model.
+
+Routine Listings
+----------------
+GMM_bins
+GMM
+
+"""
+
+__all__ = ["GMM_bins", "GMM"]
+
+
+###############################################################################
+# IMPORTS
+
+# GENERAL
 import numpy as np
-import scipy.stats as stats
+
+from typing import Optional
+
 from astropy.stats import mad_std
 
 from sklearn import mixture
 
-import seaborn as sns
+# plot
 import matplotlib.pyplot as plt
 
-from .plot import plot_GMM_1d, plot_GMM_2d, plot_BIC_diagnosis
-from .plot import LogNorm, AsinhNorm
+from .plot import (
+    plot_GMM_1d,
+    plot_GMM_2d,
+    plot_BIC_diagnosis,
+    LogNorm,
+    AsinhNorm,
+)
 
 
-class GMM_bins:
+###############################################################################
+# CODE
+###############################################################################
+
+
+class GMM_bins(object):
+    """GMM bins."""
+
     # TODO make work on astropy
 
     def __init__(self, data, bins):
-        # self.gc = gc
+        """__init__.
+
+        Parameters
+        ----------
+        data
+        bins
+
+        """
         self.data = data
         self.bins = bins
         self.gmms = []
         self.run = False
 
+    # /def
+
     def __str__(self):
+        """String representation."""
         return "GMM Class in radial bins"
 
+    # /def
+
     def __repr__(self):
+        """Primitive string representation."""
         if self.run:
             if self.n_comp is None:
                 return (
@@ -39,9 +91,25 @@ class GMM_bins:
         else:
             return f"{self.__class__.__name__}"
 
+    # /def
+
     def run_GMM_bins(
-        self, n_comp=None, max_n_comp=12, plot=True, verbose=False
+        self,
+        n_comp: Optional[int] = None,
+        max_n_comp: int = 12,
+        plot: bool = True,
+        verbose: bool = False,
     ):
+        """Run GMM bins.
+
+        Parameters
+        ----------
+        n_comp : int, optional
+        max_n_com : int, optional
+        plot : bool, optional
+        verbose : bool, optional
+
+        """
         # gc = self.gc
         bins = self.bins
 
@@ -62,8 +130,17 @@ class GMM_bins:
         print("Finished")
         self.run = True
 
+    # /def
+
     def plot_pred_main_pop_1d(self, k_std=2.5, p_thre=0.8):
-        """ Visualize the GMM discrimination. """
+        """Visualize the GMM discrimination.
+
+        Parameters
+        ----------
+        k_std : float
+        p_thre : float
+
+        """
         if not self.run:
             return None
 
@@ -110,9 +187,21 @@ class GMM_bins:
             plt.ylabel("# of Stars")
             plt.show()
 
+    # /def
+
     def plot_pred_main_pop_1d_tot(self, z_bins, k_std=2.5, p_thre=0.8):
+        """Plot predicted main population 1d total.
+
+        Parameters
+        ----------
+        z_bins : array-like
+        k_std : float
+        p_thre : float
+
+        """
         if not self.run:
             return None
+
         bins = self.bins
 
         for i in range(len(bins) - 1):
@@ -136,27 +225,56 @@ class GMM_bins:
 
         plt.show()
 
+    # /def
 
-class GMM:
-    """ 
-    GMM class
-        
-    -----------
-    data: 1d array or Nd array [N_samples, N_dimensions]
-    
-    Note: Visualization are only available < 2d.
+
+###############################################################################
+
+
+class GMM(object):
+    """Gaussian Mixture Model.
+
+    Notes
+    -----
+    Visualization are only available < 2d.
 
     """
-    
+
     def __init__(self, data):
+        """Gaussian Mixture Model.
+
+        Parameters
+        ----------
+        data: array-like
+            1d array or Nd array [N_samples, N_dimensions]
+
+        """
         self.data = data
         self.run = False
         self.ndim = np.ndim(data)
 
+    # /def
+
     def __str__(self):
+        """String representation.
+
+        Returns
+        -------
+        str
+
+        """
         return "GMM Class"
 
+    # /def
+
     def __repr__(self):
+        """String representation.
+
+        Returns
+        -------
+        str
+
+        """
         if self.run:
             if self.n_comp is None:
                 return (
@@ -171,27 +289,40 @@ class GMM:
         else:
             return f"{self.__class__.__name__}"
 
+    # /def
+
     def run_GMM(
-        self, n_comp=None, max_n_comp=10, verbose=True, plot=True, **kwargs
+        self,
+        n_comp: Optional[int] = None,
+        max_n_comp: int = 10,
+        verbose: bool = True,
+        plot: bool = True,
+        **kwargs,
     ):
-        """ Perform GMM fitting. Yield a scikit-learn Gaussian Mixture Model
-        or a list of them. Note the GMM does not account for uncertainties.
-        
+        """Perform GMM fitting.
+
+        Yield a scikit-learn Gaussian Mixture Model or a list of them.
+        Note the GMM does not account for uncertainties.
+
         Parameters
-        -----------
-        n_comp : specified number of components. Use N = argmin(BIC) 
+        ----------
+        n_comp : int, optional
+            specified number of components. Use N = argmin(BIC)
             if n_comp is not given
-        max_n_comp : maximum number of component.
-        
+        max_n_comp : int, optional
+            maximum number of component.
+        verbose : bool, optional
+        plot : bool, optional
+        kwargs
+
         """
-    
         self.max_n_comp = max_n_comp
         self.n_comp = n_comp
         data = self.data
-        
-        X = data[:, None] if np.ndim(data)==1 else data
+
+        X = data[:, None] if np.ndim(data) == 1 else data
         self.X = X
-            
+
         if n_comp is not None:
             # number of component specified
             gmm = mixture.GaussianMixture(n_components=n_comp, **kwargs)
@@ -209,7 +340,7 @@ class GMM:
                 g.fit(X)
                 BIC[N - 1] = g.bic(X)
                 gmm.append(g)
-            
+
             # the optimal fit is given by min BIC
             gmm = gmm[np.argmin(BIC)]
 
@@ -224,18 +355,27 @@ class GMM:
         if plot:
             self.plot_GMM(verbose=verbose)
 
+    # /def
+
     @property
     def means(self):
+        """Means."""
         if self.run:
             return self.gmm.means_
 
+    # /def
+
     @property
     def covariances(self):
+        """Covariances."""
         if self.run:
             return self.gmm.covariances_
-    
+
+    # /def
+
     @property
     def sigmas(self):
+        """Sigmas."""
         if self.run:
             covar = self.covariances
             if covar is not None:
@@ -243,16 +383,28 @@ class GMM:
             else:
                 return None
 
+    # /def
+
     @property
     def weights(self):
+        """Weights."""
         if self.run:
             return self.gmm.weights_
-    
+
+    # /def
+
     def GMM_summary(self, verbose=True):
+        """GMM Summary.
+
+        Parameters
+        ----------
+        verbose : bool, optional
+
+        """
         weights = self.weights
         means = self.means
         sigmas = self.sigmas
-        
+
         if verbose:
             print(
                 "Fitted Parameters for Mixture Gaussian using %d components:"
@@ -261,44 +413,69 @@ class GMM:
             print("Weight:", *np.around(weights, 3))
             print("Mean:", *np.around(means, 3))
             print("Sigma:", *np.around(sigmas, 3))
-            
 
-    def plot_GMM(self, BIC_style='dark_background', *args, **kwargs):
-        """ Visualize GMM results: decomposation and BIC vs N_comp """
+    # /def
+
+    def plot_GMM(self, BIC_style="dark_background", *args, **kwargs):
+        """Visualize GMM results.
+
+        Decomposition and BIC vs N_comp
+
+        Parameters
+        ----------
+        BIC_style : str, optional
+        args
+        kwargs
+
+        """
         if not self.run:
             return None
 
         data = self.data
         BIC = self.BIC
         weights = self.weights
-        
+
         if self.ndim == 1:
             sample = self.gmm.sample(10000)[0]
             means, sigmas = self.means.ravel(), self.sigmas.ravel()
-            
+
             ax = plot_GMM_1d(data, weights, means, sigmas, sample, **kwargs)
-            
+
             plot_BIC_diagnosis(BIC, ax)
-            
+
         if self.ndim == 2:
-            ax = plot_GMM_2d(data, weights, self.means, self.covariances, *args, **kwargs)
-            
-            plot_BIC_diagnosis(BIC, ax, bbox_to_anchor=(-0.55, 0, 1, 1), style=BIC_style)
-            
+            ax = plot_GMM_2d(
+                data, weights, self.means, self.covariances, *args, **kwargs
+            )
+
+            plot_BIC_diagnosis(
+                BIC, ax, bbox_to_anchor=(-0.55, 0, 1, 1), style=BIC_style
+            )
+
         plt.show()
 
-    def predict_main_pop(self, k_std=2.5):
-        """  Predict probability for each sample that it
-            belongs to the main population:
-        
+    # /def
+
+    def predict_main_pop(self, X, k_std=2.5):
+        """Predict probability of main population membership.
+
         1D: GMM means located in [median +/- k_std * std]
-        
+
+        Parameters
+        ----------
+        X : array-like
+        k_std : float, optional
+
+        Returns
+        -------
+        array-like or None
+
         """
         if not self.run:
             return None
 
         gmm = self.gmm
-        
+
         if self.ndim == 1:
             means = gmm.means_.ravel()
             med, std = np.median(X), mad_std(X)
@@ -307,6 +484,12 @@ class GMM:
             prob_main_pop = gmm.predict_proba(X)[:, main_pop].sum(axis=1)
 
             return prob_main_pop
-        
-        elif self.ndim==2:
+
+        elif self.ndim == 2:
             return None
+
+    # /def
+
+
+###############################################################################
+# END
