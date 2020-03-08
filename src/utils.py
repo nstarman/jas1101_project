@@ -173,7 +173,21 @@ def profile_binning(
     return_bin=True,
     plot=True,
 ):
-    """Bin the given quantity z in r."""
+    """Bin the given quantity z in r.
+    
+    Parameters
+    ----------
+    r: 1d array, binned x values
+    z: 1d array, binned y values
+    bins: 1d array, bins
+    
+    Returns
+    --------
+    r_rbin : 1d array, mean r in bins
+    z_rbin : 1d array, mean z in bins
+    z_bins : dict, numbers for bins
+    
+    """
     
     if z_clip is None:
         clip = clip_quantile_1d(z, z_quantile, return_func=True)

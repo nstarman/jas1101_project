@@ -63,15 +63,18 @@ class DBSCAN_Clustering:
         
         Parameters
         -----------
-        eps : maximum distance between two samples for one to
+        eps : float, default: 0.3 (not used in HDBSCAN)
+            maximum distance between two samples for one to
             be considered as in the neighborhood of the other.
-            default: 0.3 (not used in HDBSCAN)
-        min_samples : The number of samples in a neighborhood
+            
+        min_samples : int, default: None (use min_frac)
+            The number of samples in a neighborhood
             for a point to be considered as a core point.
             (Used as min_cluster_size in HDBSCAN)
-            default: None (use min_frac)
-        min_frac : The fraction of samples served as min_samples.
-            default: 0.5%
+            
+        min_frac : float, default: 0.5%
+            The fraction of samples served as min_samples.
+            
             
         """
     
