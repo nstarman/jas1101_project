@@ -2,14 +2,11 @@
 
 # ----------------------------------------------------------------------------
 #
-# TITLE   :
-# AUTHOR  :
-# PROJECT :
+# PROJECT : JAS1101 Final Project
 #
 # ----------------------------------------------------------------------------
 
 """Globular Cluster Class.
-
 
 Routine Listings
 ----------------
@@ -58,6 +55,8 @@ class GlobularCluster(object):
         name: str,
         property_table: Table,
         star_table: Table,
+        pm_norm_method: {"pmscale", "GMM"} = "pmscale",
+        member_method: {"memberprob", "GMM"} = "memberprob",
         member_threshold: float = 0.8,
         # clip_at=(1.0, 20 * u.mas / u.yr),
     ):
@@ -89,27 +88,25 @@ class GlobularCluster(object):
         # storing specific-properties
         self.nstar: int = property_table["nstar"]
         self.rc_ang: u.Quantity = property_table["rscale"]
+        self.pmc_ang: u.Quantity = property_table["pmscale"]
         self.d: u.Quantity = property_table["dist"]
-        self.rc: u.Quantity = convert_angle(property_table["rscale"], self.d)
+        self.rc: u.Quantity = convert_angle(self.rc_ang, self.d)
+        self.pmc: u.Quantity = convert_pm_angular(self.pmc_ang, self.d)
 
         # ----------------------------
 
         self.table_full: Table = star_table
-        self.table: Table = self.table_full[
-            self.table_full["memberprob"]
-            >= member_threshold  # TODO option to use Qing's member probability
-        ]
-        # if clip_at:
-        #     sel = (
-        #         (star_table["r"] < clip_at[0] * self.rc_ang)
-        #         & (0 * u.mas / u.yr < star_table["pm"])  # true by default
-        #         & (star_table["pm"] < clip_at[1])
-        #     )
 
-        #     self.table = star_table[sel]
+        if member_method == "memberprob":
+            self.table: Table = self.table_full[
+                self.table_full["memberprob"]
+                >= member_threshold  # TODO option to use alternate member probability
+            ]
+        elif member_method == "GMM":
+            raise ValueError("Not yet implemented")
+        else:
+            raise ValueError("Not an allowed value")
 
-        # else:
-        #     self.table = star_table
         # storing sub-properties
 
         # angular
@@ -119,9 +116,15 @@ class GlobularCluster(object):
         self.r: np.ndarray = (self.table["r"] / self.rc_ang).to_value(dmls)
 
         # TODO: normalized pm replacing .value
-        self.pm: u.Quantity = self.table["pm"]
-        self.pmx: float = self.table["pmx"].value
-        self.pmy: float = self.table["pmy"].value
+        if pm_norm_method == "pmscale":
+            self.pm: float = (self.table["pm"] / self.pmc_ang).to_value(dmls)
+            self.pmx: float = (self.table["pmx"] / self.pmc_ang).to_value(dmls)
+            self.pmy: float = (self.table["pmy"] / self.pmc_ang).to_value(dmls)
+        elif pm_norm_method == "GMM":
+            raise ValueError("Not yet implemented")
+        else:
+            raise ValueError("Not an allowed value")
+
         self.vsky: u.Quantity = convert_pm_angular(self.table["pm"][:], self.d)
 
         return None
@@ -133,7 +136,7 @@ class GlobularCluster(object):
         cls,
         name: str,
         drct: str,
-        clip_at: Tuple[float, u.Quantity] = (1.0, 20 * u.mas / u.yr),
+        # clip_at: Tuple[float, u.Quantity] = (1.0, 20 * u.mas / u.yr),
     ):
         """Load From Directory.
 
@@ -152,7 +155,12 @@ class GlobularCluster(object):
             drct + "gcs/" + name + ".ecsv", clip_at=False
         )
 
-        return cls(name, summary, star_table, clip_at=clip_at)
+        return cls(
+            name,
+            summary,
+            star_table,
+            # clip_at=clip_at
+        )
 
     # /def
 
