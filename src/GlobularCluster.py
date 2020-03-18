@@ -2,19 +2,15 @@
 
 # ----------------------------------------------------------------------------
 #
-# TITLE   :
-# AUTHOR  :
-# PROJECT :
+# PROJECT : JAS1101 Final Project
 #
 # ----------------------------------------------------------------------------
 
-"""initialization file for __________.
-
-description
+"""Globular Cluster Class.
 
 Routine Listings
 ----------------
-module
+GlobularCluster
 
 """
 
@@ -25,8 +21,11 @@ __all__ = ["GlobularCluster"]
 # IMPORTS
 
 # GENERAL
-# import numpy as np
+import numpy as np
 import astropy.units as u
+from astropy.table import Table
+
+from typing import Tuple, Any, Sequence, Optional
 
 # CUSTOM
 
@@ -40,7 +39,7 @@ from .GMM import GMM_bins
 ##############################################################################
 # PARAMETERS
 
-dmls = u.dimensionless_unscaled
+dmls: u.Quantity = u.dimensionless_unscaled  # shortcut
 
 
 ##############################################################################
@@ -49,12 +48,19 @@ dmls = u.dimensionless_unscaled
 
 
 class GlobularCluster(object):
-    """docstring for GlobularCluster"""
+    """Globular Cluster Class."""
 
     def __init__(
-        self, name, property_table, star_table, clip_at=(1., 20 * u.mas / u.yr)
+        self,
+        name: str,
+        property_table: Table,
+        star_table: Table,
+        pm_norm_method: {"pmscale", "GMM"} = "pmscale",
+        member_method: {"memberprob", "GMM"} = "memberprob",
+        member_threshold: float = 0.8,
+        # clip_at=(1.0, 20 * u.mas / u.yr),
     ):
-        """GlobularCluster
+        """Create Globular Cluster from Data.
 
         Parameters
         ----------
@@ -69,62 +75,74 @@ class GlobularCluster(object):
 
         """
         super(GlobularCluster, self).__init__()
-        self.name = name
+        self.name: str = name
         self._bins = None
 
         # ----------------------------
 
         if len(property_table) > 1:  # then full summary table of all GCs
-
             property_table = property_table.loc[name]  # QTable to not be Row
 
         # Property table
-        self.summary = property_table
+        self.summary: Table = property_table
         # storing specific-properties
-        self.nstar = property_table["nstar"]
-        self.rc_ang = property_table["rscale"]
-        self.d = property_table["dist"]
-        self.rc = convert_angle(property_table["rscale"], self.d)
+        self.nstar: int = property_table["nstar"]
+        self.rc_ang: u.Quantity = property_table["rscale"]
+        self.pmc_ang: u.Quantity = property_table["pmscale"]
+        self.d: u.Quantity = property_table["dist"]
+        self.rc: u.Quantity = convert_angle(self.rc_ang, self.d)
+        self.pmc: u.Quantity = convert_pm_angular(self.pmc_ang, self.d)
 
         # ----------------------------
 
-        self.df_full = star_table
-        if clip_at:
-            sel = (
-                (star_table["r"] < clip_at[0] * self.rc_ang)
-                & (0 * u.mas / u.yr < star_table["pm"])  # true by default
-                & (star_table["pm"] < clip_at[1])
-            )
+        self.table_full: Table = star_table
 
-            self.df = star_table[sel]
-
+        if member_method == "memberprob":
+            self.table: Table = self.table_full[
+                self.table_full["memberprob"]
+                >= member_threshold  # TODO option to use alternate member probability
+            ]
+        elif member_method == "GMM":
+            raise ValueError("Not yet implemented")
         else:
-            self.df = star_table
+            raise ValueError("Not an allowed value")
+
         # storing sub-properties
 
         # angular
         # adjusted for distance is the same.
-        self.x = (self.df["x"] / self.rc_ang).decompose().to_value(dmls)
-        self.y = (self.df["y"] / self.rc_ang).decompose().to_value(dmls)
-        self.r = (self.df["r"] / self.rc_ang).decompose().to_value(dmls)
-            
+        self.x: np.ndarray = (self.table["x"] / self.rc_ang).to_value(dmls)
+        self.y: np.ndarray = (self.table["y"] / self.rc_ang).to_value(dmls)
+        self.r: np.ndarray = (self.table["r"] / self.rc_ang).to_value(dmls)
+
         # TODO: normalized pm replacing .value
-        self.pm = self.df["pm"]
-        self.pmx = self.df["pmx"].value
-        self.pmy = self.df["pmy"].value
-        self.vsky = convert_pm_angular(self.df["pm"][:], self.d)
+        if pm_norm_method == "pmscale":
+            self.pm: float = (self.table["pm"] / self.pmc_ang).to_value(dmls)
+            self.pmx: float = (self.table["pmx"] / self.pmc_ang).to_value(dmls)
+            self.pmy: float = (self.table["pmy"] / self.pmc_ang).to_value(dmls)
+        elif pm_norm_method == "GMM":
+            raise ValueError("Not yet implemented")
+        else:
+            raise ValueError("Not an allowed value")
+
+        self.vsky: u.Quantity = convert_pm_angular(self.table["pm"][:], self.d)
 
         return None
 
     # /def
 
     @classmethod
-    def from_directory(cls, name, drct, clip_at=(1., 20 * u.mas / u.yr)):
-        """From Directory
+    def from_directory(
+        cls,
+        name: str,
+        drct: str,
+        # clip_at: Tuple[float, u.Quantity] = (1.0, 20 * u.mas / u.yr),
+    ):
+        """Load From Directory.
 
         Load from a directory in the following format:
             result.txt
-            output/"globular "
+            output/"globular  "
 
         Parameters
         ----------
@@ -134,25 +152,48 @@ class GlobularCluster(object):
         """
         summary = load_summary_table(drct)
         star_table, _ = load_globular_cluster(
-            drct + "output/" + name + ".csv", clip_at=False
+            drct + "gcs/" + name + ".ecsv", clip_at=False
         )
 
-        return cls(name, summary, star_table, clip_at=clip_at)
+        return cls(
+            name,
+            summary,
+            star_table,
+            # clip_at=clip_at
+        )
 
     # /def
 
     # --------------------------------
 
-    def __getitem__(self, name):
+    def __getitem__(self, name: str):
+        """__getitem__."""
         return getattr(self, name)
 
-    def __setitem__(self, name, value):
+    def __setitem__(self, name: str, value: Any):
+        """__setitem__."""
         return setattr(self, name, value)
 
     # --------------------------------
     # Data Processing
 
-    def bin_profile(self, bins, z_clip=None, plot=False):
+    def bin_profile(self, bins: Sequence, z_clip=None, plot: bool = False):
+        """Bin Profile.
+
+        Parameters
+        ----------
+        bins : array-like
+        z_clip : optional
+        plot : bool, optional
+            plot result
+
+        Returns
+        -------
+        r_rbin : array-like
+        z_rbin : array-like
+        z_bins : array-like
+
+        """
         r_rbin, z_rbin, z_bins = profile_binning(
             self.r,
             #     gcs["r_ang"] * gcP['rscale_ang'].to_value('deg'),  # TODO FIX
@@ -169,26 +210,91 @@ class GlobularCluster(object):
 
         return r_rbin, z_rbin, z_bins
 
-    def makeGMMs(self, bins, plot=True):
-        """Make a GMM of radial vs kind"""
+    # /def
+
+    def makeGMMs(self, bins: Sequence, plot: bool = True):
+        """Make a GMM of radial vs kind.
+
+        Parameters
+        ----------
+        bins : array-like
+        plot : bool
+
+        Returns
+        -------
+        GMM : GMM_bins
+
+        """
         self._bins = bins
-        self.GMMx = GMM_bins(self.r, self.df["pmx"], bins)
+        self.GMM = GMM_bins(self.r, self.table["pmx"], bins)
         return self.GMM
 
-    def runGMM(self, n_comp=None, max_n_comp=6, plot=True, verbose=False):
+    # /def
+
+    def runGMM(
+        self,
+        n_comp: Optional[int] = None,
+        max_n_comp: int = 6,
+        plot: bool = True,
+        verbose: bool = False,
+    ):
+        """Runs GMM.
+
+        calls run_GMM_bins
+
+        Parameters
+        ----------
+        n_comp : int, optional
+            number of components
+        max_n_com : int, optional
+            maximum number of components
+        plot : bool, optional
+            whether to plot GMM bins
+        verbose : bool, optional
+            verbosity of GMM fit
+
+        """
         self.GMM.run_GMM_bins(
             n_comp=n_comp, max_n_comp=max_n_comp, plot=plot, verbose=verbose
         )
 
+    # /def
+
     def predictMainPop(self, data, annulus: int):
+        """Predict whether star belongs to main population or the background.
+
+        Parameters
+        ----------
+        data
+        annulus
+
+        Returns
+        -------
+        array-like
+
+        """
         return self.GMM.gmms[annulus].predict_main_pop(data)
+
+    # /def
 
     # --------------------------------
     # Plot
 
     def plot_binned_profile(self, bins=None, z_clip=None):
+        """Plot Binned Profile.
+
+        Parameters
+        ----------
+        bins
+        z_clip
+
+        Returns
+        -------
+        fig : Figure
+
+        """
         bins = self._bins if bins is None else bins
-        plot_binned_profile(self.r, self.pm.value, bins, z_clip=z_clip)
+        return plot_binned_profile(self.r, self.pm.value, bins, z_clip=z_clip)
 
     # /def
 

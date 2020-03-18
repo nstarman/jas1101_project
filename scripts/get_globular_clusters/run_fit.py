@@ -48,6 +48,9 @@ __maintainer__ = "Nathaniel Starkman"
 # IMPORTS
 
 # GENERAL
+import argparse
+import warnings
+from typing import Optional
 import numpy as np
 import scipy.optimize
 
@@ -92,16 +95,59 @@ use_systematic_error = True
 ###############################################################################
 
 
-def main(opts=None):
+def make_parser(inheritable=False):
+    """Expose parser for ``main``.
+
+    Parameters
+    ----------
+    inheritable: bool
+        whether the parser can be inherited from (default False).
+        if True, sets ``add_help=False`` and ``conflict_hander='resolve'``
+
+    Returns
+    -------
+    parser: ArgumentParser
+
+    """
+    parser = argparse.ArgumentParser(
+        description="Run Fit Parser",
+        add_help=~inheritable,
+        conflict_handler="resolve" if ~inheritable else 'error'
+    )
+
+    return parser
+
+# /def
+
+
+# -------------------------------------------------------------------
+
+
+def main(
+    args: Optional[list] = None, opts: Optional[argparse.Namespace] = None
+):
     """Script Function.
 
     Parameters
     ----------
-    opts: ArgumentParser or None, optional
+    args : list, optional
+        an optional single argument that holds the sys.argv list,
+        except for the script name (e.g., argv[1:])
+    opts : Namespace, optional
+        pre-constructed results of parsed args
+        if not None, used ONLY if args is None
 
     """
-    filein = open("input.txt", "r")
-    fileout = open("result.txt", "w")
+    if opts is not None and args is None:
+        pass
+    else:
+        if opts is not None:
+            warnings.warn("Not using `opts` because `args` are given")
+        parser = make_parser()
+        opts = parser.parse_args(args)
+
+    filein = open("resources/input.txt", "r")
+    fileout = open("output/result.txt", "w")
     for linein in filein:
         # parse the input file (one line per cluster)
         line = linein.strip().split()
@@ -320,9 +366,7 @@ def main(opts=None):
             )
             if give_prob:
                 # return the posterior membership probability for each star
-                return np.nan_to_num(
-                    clust_distr / (clust_distr + field_distr)
-                )
+                return np.nan_to_num(clust_distr / (clust_distr + field_distr))
             else:
                 # return the total log-likelihood of the model
                 result = sum(log(clust_distr + field_distr))
@@ -476,7 +520,9 @@ def main(opts=None):
 
 if __name__ == "__main__":
 
-    main()
+    main(args=None, opts=None)
+
+# /if
 
 
 ###############################################################################

@@ -17,8 +17,9 @@ __author__ = ["Nathaniel Starkman", "Qing Liu", "Vivian Ngo"]
 # IMPORTS
 
 # GENERAL
+import warnings
 import argparse
-from typing import Union
+from typing import Optional
 
 
 ###############################################################################
@@ -26,13 +27,55 @@ from typing import Union
 ###############################################################################
 
 
-
 ###############################################################################
 # Command Line
 ###############################################################################
 
 
-def main(opts: Union[argparse.ArgumentParser, None]):
+def make_parser(inheritable=False):
+    """Make parser.
+
+    Parameters
+    ----------
+    inheritable: bool
+        whether the parser can be inherited from (default False).
+        if True, sets ``add_help=False`` and ``conflict_hander='resolve'``
+
+    Returns
+    -------
+    parser: ArgumentParser
+
+    """
+    parser = argparse.ArgumentParser(
+        description="get_globular_clusters",
+        add_help=~inheritable,
+        conflict_handler="resolve" if ~inheritable else "error",
+    )
+    parser.add_argument(
+        "--output_dir",
+        type=str,
+        default="../../data",
+        help="The data directory",
+    )
+    parser.add_argument(
+        "--data_dir",
+        type=str,
+        default="data",
+        help="The input data directory",
+    )
+
+    return parser
+
+
+# /def
+
+
+# ------------------------------------------------------------------------
+
+
+def main(
+    args: Optional[list] = None, opts: Optional[argparse.Namespace] = None
+):
     """Script Function.
 
     This function runs the complete set of scripts in this module.
@@ -40,10 +83,20 @@ def main(opts: Union[argparse.ArgumentParser, None]):
 
     Parameters
     ----------
-    opts : ArgumentParser or None
-        must contain `output_dir`, `data_dir`
+    args : list, optional
+        an optional single argument that holds the sys.argv list,
+        except for the script name (e.g., argv[1:])
+    opts : Namespace, optional
+        pre-constructed results of parsed args
 
     """
+    if opts is not None and args is None:
+        pass
+    else:
+        if opts is not None:
+            warnings.warn("Not using `opts` because `args` are given")
+        parser = make_parser()
+        opts = parser.parse_args(args)
 
     # 1) Query Gaia Archive
     # This script was written by Eugene
@@ -60,24 +113,15 @@ def main(opts: Union[argparse.ArgumentParser, None]):
     from .run_orbits import main as run_gc_orbits
     run_gc_orbits()
 
-    # 4) Reformat results, saving to /data
+    # 4) Determine proper motion scale
+    from .fit_pm_scale import main as fit_pm_scale
+    fit_pm_scale()
+
+    # 5) Reformat results, saving to /data
     from .format_results import main as format_results_function
+    format_results_function(opts=opts)
 
-    if opts is None:
-        parser = argparse.ArgumentParser()
-        parser.add_argument(
-            "--output_dir",
-            type=str,
-            default="../../data",
-        )
-        parser.add_argument(
-            "--data_dir",
-            type=str,
-            default="data",
-        )
-        opts, args = parser.parse_args()
-
-    format_results_function(opts)
+    return
 
 # /def
 
@@ -86,25 +130,9 @@ def main(opts: Union[argparse.ArgumentParser, None]):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--output_dir",
-        type=str,
-        default="../../data",
-        help="The data directory",
-    )
-    parser.add_argument(
-        "--data_dir",
-        type=str,
-        default="data",
-        help="The input data directory",
-    )
+    main(args=None, opts=None)
 
-    options, args = parser.parse_args()
-
-    main(options)
-
-# /def
+# /if
 
 
 ###############################################################################

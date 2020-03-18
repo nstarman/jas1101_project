@@ -28,6 +28,12 @@ import argparse
 
 from typing import Union
 
+# PROJECT-SPECIFIC
+# fmt: off
+import sys; sys.insert(0, '../../')
+# fmt: on
+from src import load
+
 
 ###############################################################################
 # PARAMETERS
@@ -69,7 +75,7 @@ def main(opts: Union[argparse.ArgumentParser, None]):
         )
         opts, args = parser.parse_args()
 
-    print('OK')
+    summary_table = load.summary_table('../../data')
 
     # 1. MAD clip at 5-sigma
 
