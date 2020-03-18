@@ -207,7 +207,7 @@ def main(
         agama.setUnits(length=1, velocity=1, mass=1)
     )  # units: kpc, km/s, Msun; time unit ~ 1 Gyr
     potential = agama.Potential(
-        "McMillan17.ini"
+        "resources/McMillan17.ini"
     )  # MW potential from McMillan(2017)
 
     # compute orbits for each realization of initial conditions,
