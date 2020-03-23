@@ -42,10 +42,17 @@ __maintainer__ = "Nathaniel Starkman"
 # IMPORTS
 
 # GENERAL
+import argparse
+import warnings
+from typing import Optional
+
 import numpy as np
-import agama
+
 from astropy import units as u
 from astropy import coordinates as coord
+
+# CUSTOM
+import agama
 
 
 ###############################################################################
@@ -56,15 +63,56 @@ from astropy import coordinates as coord
 # Command Line
 ###############################################################################
 
+def make_parser(inheritable=False):
+    """Expose parser for ``main``.
 
-def main(opts=None):
+    Parameters
+    ----------
+    inheritable: bool
+        whether the parser can be inherited from (default False).
+        if True, sets ``add_help=False`` and ``conflict_hander='resolve'``
+
+    Returns
+    -------
+    parser: ArgumentParser
+
+    """
+    parser = argparse.ArgumentParser(
+        description="Run Orbits",
+        add_help=~inheritable,
+        conflict_handler="resolve" if ~inheritable else 'error'
+    )
+
+    return parser
+
+# /def
+
+
+# ------------------------------------------------------------------------
+
+
+def main(
+    args: Optional[list] = None, opts: Optional[argparse.Namespace] = None
+):
     """Script Function.
 
     Parameters
     ----------
-    opts: ArgumentParser or None, optional
+    args : list, optional
+        an optional single argument that holds the sys.argv list,
+        except for the script name (e.g., argv[1:])
+    opts : Namespace, optional
+        pre-constructed results of parsed args
+        if not None, used ONLY if args is None
 
     """
+    if opts is not None and args is None:
+        pass
+    else:
+        if opts is not None:
+            warnings.warn('Not using `opts` because `args` are given')
+        parser = make_parser()
+        opts = parser.parse_args(args)
     # STEP 1: create Monte Carlo realizations of position and velocity of each cluster,
     # sampling from their measured uncertainties.
 
@@ -159,7 +207,7 @@ def main(opts=None):
         agama.setUnits(length=1, velocity=1, mass=1)
     )  # units: kpc, km/s, Msun; time unit ~ 1 Gyr
     potential = agama.Potential(
-        "McMillan17.ini"
+        "resources/McMillan17.ini"
     )  # MW potential from McMillan(2017)
 
     # compute orbits for each realization of initial conditions,
@@ -233,7 +281,7 @@ def main(opts=None):
 # --------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    main()
+    main(args=None, opts=None)
 
 
 ###############################################################################

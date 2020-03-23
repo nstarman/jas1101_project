@@ -121,6 +121,7 @@ def retrieve(gaia, rint, rint0, ra, dec, radius, filename, parallax_limit):
 
     return
 
+
 # /def
 
 
@@ -129,7 +130,38 @@ def retrieve(gaia, rint, rint0, ra, dec, radius, filename, parallax_limit):
 ###############################################################################
 
 
-def main(opts: Optional[argparse.ArgumentParser] = None):
+def make_parser(inheritable=False):
+    """Expose parser for ``main``.
+
+    Parameters
+    ----------
+    inheritable: bool
+        whether the parser can be inherited from (default False).
+        if True, sets ``add_help=False`` and ``conflict_hander='resolve'``
+
+    Returns
+    -------
+    parser: ArgumentParser
+
+    """
+    parser = argparse.ArgumentParser(
+        description="Query Gaua Archive Parser",
+        add_help=~inheritable,
+        conflict_handler="resolve" if ~inheritable else "error",
+    )
+
+    return parser
+
+
+# /def
+
+
+# ------------------------------------------------------------------------
+
+
+def main(
+    args: Optional[list] = None, opts: Optional[argparse.Namespace] = None
+):
     """Script Function.
 
     Retrieve the data from the Gaia archive (all sources satisfying the
@@ -144,24 +176,41 @@ def main(opts: Optional[argparse.ArgumentParser] = None):
 
     Parameters
     ----------
-    opts : ArgumentParser or None, optional
+    args : list, optional
+        an optional single argument that holds the sys.argv list,
+        except for the script name (e.g., argv[1:])
+    opts : Namespace, optional
+        pre-constructed results of parsed args
+        if not None, used ONLY if args is None
 
     """
+    if opts is not None and args is None:
+        pass
+    else:
+        if opts is not None:
+            warnings.warn("Not using `opts` because `args` are given")
+        parser = make_parser()
+        opts = parser.parse_args(args)
+
     # download the file with renormalized unit weight error correction tables from the Gaia website
-    ruwefile = "DR2_RUWE_V1/table_u0_2D.txt"
+    ruwefile = "resources/DR2_RUWE_V1/table_u0_2D.txt"
 
     if not os.path.isfile(ruwefile):
         subprocess.call(
-            "curl https://www.cosmos.esa.int/documents/29201/1769576/DR2_RUWE_V1.zip/d90f37a8-37c9-81ba-bf59-dd29d9b1438f > temp.zip",
+            (  # no , b/c combine into 1 string
+                "curl https://www.cosmos.esa.int/documents/29201/1769576/"
+                "DR2_RUWE_V1.zip/d90f37a8-37c9-81ba-bf59-dd29d9b1438f"
+                " > temp.zip"
+            ),
             shell=True,
         )
         subprocess.call("unzip temp.zip " + ruwefile, shell=True)
         os.remove("temp.zip")
+
     if not os.path.isdir("data"):
         os.mkdir("data")
 
-    # construct interpolator for renormalized unit weight error correction table
-
+    # construct interpolator for renorm unit weight error correction table
     rtab = np.loadtxt(ruwefile, delimiter=",", skiprows=1)
     # correction factor as a function of g_mag and bp_rp
     rint = scipy.interpolate.RectBivariateSpline(
@@ -175,7 +224,7 @@ def main(opts: Optional[argparse.ArgumentParser] = None):
     gaia = Tap(url="http://gea.esac.esa.int/tap-server/tap")
 
     # read the list of clusters and query the Gaia archive for each of them
-    lst = np.genfromtxt("input.txt", dtype=str)
+    lst = np.genfromtxt("resources/input.txt", dtype=str)
     for l in lst:
         retrieve(
             gaia=gaia,
@@ -197,8 +246,10 @@ def main(opts: Optional[argparse.ArgumentParser] = None):
 # --------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    main()
 
+    main(args=None, opts=None)
+
+# /if
 
 ###############################################################################
 # END
