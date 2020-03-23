@@ -7,7 +7,7 @@
 # ----------------------------------------------------------------------------
 
 # Docstring
-"""**DOCSTRING**.
+"""Get the Proper Motion Scale Size of Each Globular Cluster.
 
 Warnings
 --------
@@ -36,16 +36,21 @@ import os
 import pathlib
 import warnings
 import argparse
+from typing import Optional, Sequence
+
 import tqdm
-from typing import Optional
 
 import numpy as np
+import scipy.stats as stats
 
 import scipy.optimize as optimize
 
 import astropy.units as u
 from astropy.table import Table, QTable
 from astropy.stats import SigmaClip
+
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # CUSTOM
 
@@ -68,10 +73,20 @@ warnings.simplefilter("always", UserWarning)
 ###############################################################################
 
 
-def read_globular_cluster_table(file):
-    """Docstring."""
+def read_globular_cluster_table(file: str) -> QTable:
+    """Read GC data table.
+
+    Reads the GC table and assigns units
+
+    Parameters
+    ----------
+    file
+
+    """
+    # read table
     df = QTable.read(file, format="ascii.commented_header")
 
+    # units dictionary
     units = {
         "x": u.deg,
         "y": u.deg,
@@ -83,6 +98,7 @@ def read_globular_cluster_table(file):
         "bp_rp": u.mag,
     }
 
+    # assign units
     for name, unit in units.items():
         df[name].unit = unit
 
@@ -92,7 +108,7 @@ def read_globular_cluster_table(file):
 # /def
 
 
-def read_summary_table(file):
+def read_summary_table(file: str) -> QTable:
     """Read summary table to be in Astropy format.
 
     Parameters
@@ -105,9 +121,11 @@ def read_summary_table(file):
     df : QTable
 
     """
+    # read table, in Table format for better editing access
     df = Table.read(file, format="ascii.commented_header")
-    df.add_index("Name")
+    df.add_index("Name")  # index by name
 
+    # units dictionary
     units = {
         "ra": u.deg,
         "dec": u.deg,
@@ -126,8 +144,9 @@ def read_summary_table(file):
         "pmscale_e": u.mas / u.yr,
     }
 
+    # assign units
     for name, unit in units.items():
-        if name in df.columns:
+        if name in df.columns:  # needed b/c creating columns
             df[name].unit = unit
 
     return QTable(df)
@@ -139,14 +158,55 @@ def read_summary_table(file):
 # https://scipy-cookbook.readthedocs.io/items/FittingData.html
 
 
-def gaussian(height, center_x, center_y, width_x, width_y):
-    """Returns a gaussian function with the given parameters"""
+def gaussian(
+    height: float,
+    center_x: float,
+    center_y: float,
+    width_x: float,
+    width_y: float,
+):
+    """Returns a gaussian function with the given parameters.
+
+    Parameters
+    ----------
+    height : float
+    center_x: float
+    center_y: float
+    width_x: float
+    width_y: float
+
+    Returns
+    -------
+    
+
+    """
     width_x = float(width_x)
     width_y = float(width_y)
-    return lambda x, y: height * np.exp(
-        -(((center_x - x) / width_x) ** 2 + ((center_y - y) / width_y) ** 2)
-        / 2
-    )
+
+    def Gaussian(x: Sequence, y: Sequence) -> Sequence:
+        """Gaussian function of x, y with preloaded center and widths.
+
+        Parameters
+        ----------
+        x, y : array-like
+            positions
+
+        Returns
+        -------
+        array-like
+
+        """
+        return height * np.exp(
+            -(
+                ((center_x - x) / width_x) ** 2
+                + ((center_y - y) / width_y) ** 2
+            )
+            / 2
+        )
+
+    # /def
+
+    return Gaussian
 
 
 # /def
@@ -194,8 +254,8 @@ def fitgaussian(data):
 # ------------------------------------------------------------------------
 
 
-def scale_values_2d(df, threshold=0.8):
-    """
+def scale_values_2d(name, df, threshold=0.8, sigma=4):
+    """scale_values_2d
 
     Use Sturge’s Rule to determine number of bins
 
@@ -214,12 +274,24 @@ def scale_values_2d(df, threshold=0.8):
 
     # Sigma Clip major outliers
 
-    sigclip = SigmaClip(sigma=3, maxiters=1.0)
+    sigclip = SigmaClip(sigma=sigma, maxiters=1.0)
     resx = sigclip(pmx)
     resy = sigclip(pmy)
 
     pmx = resx.data[~resx.mask & ~resy.mask]
     pmy = resy.data[~resx.mask & ~resy.mask]
+
+    # -----------
+    # plot normality test
+
+    fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(6, 3))
+    stats.probplot(pmx, dist="norm", plot=ax0)
+    stats.probplot(pmy, dist="norm", plot=ax1)
+    plt.tight_layout()
+    plt.savefig(f"figures/{name}_QQ.pdf")
+    plt.close()
+
+    # -----------
 
     # Now histogram
     # need equi-spaced bins
@@ -245,6 +317,49 @@ def scale_values_2d(df, threshold=0.8):
         height, x, y, width_x, width_y = params
 
         labels = ("height", "x", "y", "width_x", "width_y")
+
+    # -----------
+    # plot 2D Gaussian
+
+    plt.matshow(data, cmap=plt.cm.gist_earth_r)
+
+    if rota < 2:
+        fit = gaussian(*params)
+    else:
+        fit = gaussfitter.twodgaussian(params, circle=0, rotate=1, vheight=1)
+
+    plt.contour(fit(*np.indices(data.shape)), cmap=plt.cm.copper)
+    ax = plt.gca()
+
+    rota %= 360  # shift back to 0 - 360 degree rotation
+
+    plt.text(
+        0.95,
+        0.05,
+        """
+    x : %.1f
+    y : %.1f
+    rot : %.1f
+    width_x : %.1f
+    width_y : %.1f"""
+        % (x, y, rota, width_x, width_y),
+        fontsize=16,
+        horizontalalignment="right",
+        verticalalignment="bottom",
+        transform=ax.transAxes,
+    )
+    plt.savefig(f"figures/{name}_2D.pdf")
+    plt.close()
+
+    # -----------
+
+    sns.heatmap(np.log10(cov), cmap='viridis_r')
+    plt.xticks(plt.xticks()[0], labels)
+    plt.yticks(plt.yticks()[0], labels)
+    plt.savefig(f"figures/{name}_cov.pdf")
+    plt.close()
+
+    # -----------
 
     return width_x, width_y, cov, labels, edges
 
@@ -342,6 +457,7 @@ def main(
         if not None, used ONLY if args is None
 
     """
+    # deal with arguments
     if opts is not None and args is None:
         pass
     else:
@@ -350,13 +466,17 @@ def main(
         parser = make_parser()
         opts = parser.parse_args(args)
 
-    data_dir: str = opts.data_dir
-    result_dir = str(pathlib.Path(data_dir).parent)
+    # get options
+    data_dir: str = opts.data_dir  # where the data is stored
+    result_dir = str(
+        pathlib.Path(data_dir).parent
+    )  # where to store the formatted output
 
-    # reformat
+    # ensure paths end in '/'
     data_dir = data_dir if data_dir.endswith("/") else data_dir + "/"
     result_dir = result_dir if result_dir.endswith("/") else result_dir + "/"
 
+    # read property summary table
     summary = read_summary_table(result_dir + "result.txt")
     summary["pmscale"] = np.NaN * u.mas / u.yr
     summary["pmscale_e"] = np.NaN * u.mas / u.yr
@@ -367,13 +487,13 @@ def main(
 
     for file in tqdm.tqdm(files):
 
-        name = file[: -len(".txt")]
+        name = file[: -len(".txt")]  # GC name
 
         gc = read_globular_cluster_table(data_dir + file)
 
         # compute scale parameter
         width_x, width_y, cov, labels, edges = scale_values_2d(
-            gc, threshold=0.8
+            name, gc, threshold=0.8, sigma=4
         )
         pm_scale, pm_scale_err, flag = average_scale_value(
             width_x, width_y, *edges
@@ -384,11 +504,13 @@ def main(
         if np.isnan(pm_scale):
             warnings.warn(name + " has NaN pm scale")
 
+        # write to table
         summary.loc[name]["pmscale"] = np.round(pm_scale, 3)
         summary.loc[name]["pmscale_e"] = np.round(pm_scale_err, 3)
 
     # # /for
 
+    # save whole summary table
     summary.write(
         result_dir + "result.txt",
         format="ascii.commented_header",
