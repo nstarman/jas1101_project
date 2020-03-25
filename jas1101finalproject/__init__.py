@@ -41,6 +41,7 @@ from astropy.coordinates import SkyCoord
 # )
 from .GlobularCluster import GlobularCluster
 # from .utils import profile_binning, convert_angle, convert_pm_angular
+from . import data
 
 
 ##############################################################################
