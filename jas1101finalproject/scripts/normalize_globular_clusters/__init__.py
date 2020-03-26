@@ -274,7 +274,7 @@ def main(
             member_prob[sel] = 1
             
             # plot std of pm in radial bins
-            plot_5(GC, sel, bins=np.linspace(r_min, rmax, 7))
+            plot_5(GC, sel, bins=np.linspace(r_min, r_max, 7))
             
             # qq plot
             plot_6(GC, sel)
