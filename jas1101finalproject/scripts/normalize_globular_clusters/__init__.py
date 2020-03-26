@@ -246,7 +246,7 @@ def main(
         )
         
         # clip in radius
-        r_min, rmax = 0.25, 1
+        r_min, r_max = 0.25, 1
         good_r = (X0[:,0]>r_min) & (X0[:,0]<r_max)
 
         if sum(good_pm & good_r) == 0:
