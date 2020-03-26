@@ -144,7 +144,7 @@ def plot_4(GC, clus):
 
 def plot_5(GC, sel, bins):
     plt.figure()    
-    fig = plot.plot_binned_std_profile(r=GC.r[sel][:,0],
+    fig = plot.plot_binned_std_profile(r=GC.r[sel],
                                        pm=GC.pm[sel],
                                        bins=bins)
     plt.savefig(FIGURES + f"{GC.name}/{GC.name}_sigma_rbin.pdf")
@@ -274,7 +274,7 @@ def main(
             member_prob[sel] = 1
             
             # plot std of pm in radial bins
-            plot_5(GC, sel, bins=np.linspace(r_min, r_max, 7))
+#             plot_5(GC, sel, bins=np.linspace(r_min, r_max, 5))
             
             # qq plot
             plot_6(GC, sel)
