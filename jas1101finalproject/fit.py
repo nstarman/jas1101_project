@@ -90,9 +90,13 @@ class DynamicNestedSampler:
         self.loglike = loglikelihood
         self.ndim = ndim
         
-        dsampler = dynesty.DynamicNestedSampler(self.loglike, self.prior_tf, 
-                                                self.ndim, sample=sample, bound=bound,
-                                                pool=self.pool, queue_size=n_thread,
+        dsampler = dynesty.DynamicNestedSampler(self.loglike,
+                                                self.prior_tf,
+                                                self.ndim,
+                                                sample=sample,
+                                                bound=bound,
+                                                pool=self.pool,
+                                                queue_size=n_thread,
                                                 use_pool=self.use_pool)
         self.dsampler = dsampler
         
@@ -186,10 +190,12 @@ class DynamicNestedSampler:
                                     show_live=True, fig=(fig, axes))
 
             
-def Run_Dynamic_Nested_Fitting(loglikelihood, prior_transform, ndim,
+def Run_Dynamic_Nested_Fitting(loglikelihood,
+                               prior_transform, ndim,
                                nlive_init=100, sample='auto', 
                                nlive_batch=50, maxbatch=2,
-                               pfrac=0.8, n_cpu=None, print_progress=True):
+                               pfrac=0.8, n_cpu=None,
+                               print_progress=True):
     
     """ Run Fitting as a Function.
     
