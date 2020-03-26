@@ -144,7 +144,7 @@ def plot_4(GC, clus):
 
 def plot_5(GC, sel, bins):
     plt.figure()    
-    fig = plot.plot_binned_std_profile(r=GC.r[sel],
+    fig = plot.plot_binned_sigma_profile(r=GC.r[sel],
                                        pm=GC.pm[sel],
                                        bins=bins)
     plt.savefig(FIGURES + f"{GC.name}/{GC.name}_sigma_rbin.pdf")
