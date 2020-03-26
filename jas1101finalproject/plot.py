@@ -470,10 +470,27 @@ def plot_binned_profile(r, pm, bins=None, z_clip=None):
         )
         plt.xlabel("pm [mas/yr]")
         plt.ylabel("density")
-        plt.show()
 
     return fig
 
+
+def plot_binned_std_profile(r, pm, bins=None):
+    from astropy.stats import mad_std
+    
+    if bins is None:
+        raise Exception("need to pass bins or call bin_profile")
+    
+    r_rbin, z_rbin, z_bins = profile_binning(r, pm, bins=bins, plot=False)
+
+    std_rbin = np.array([mad_std(z_bins[i]['pm'])
+                         for i in range(len(z_bins))])
+    
+    fig = plt.figure()
+    plt.plot(r_rbin, std_rbin, 'ko-')
+    plt.xlabel("r")
+    plt.ylabel(r"$\sigma$")
+    
+    return fig
 
 # /def
 
