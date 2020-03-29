@@ -52,6 +52,100 @@ def sigmar_2(x, M_gc, r_scale, beta):
     return (constants.G * u.solMass * sig2 / u.pc).to((u.km/u.s)**2)
 
 
+### Prior Transform ###
+
+def set_prior(kind = 'scale',
+              scale_max=10, scale_min=0,
+              logbeta_max=-2, logbeta_min=-5):
+    
+    """
+    Setup prior transforms for models. 
+    
+    Parameters
+    ----------
+    scale_min : min scale
+    scale_max : max scale
+    
+    logbeta_min : min log beta
+    logbeta_max : max log beta
+
+    Returns
+    ----------
+    prior_tf : prior transform function for fitting
+    
+    """
+    
+    if kind == 'scale':
+        
+        def prior_2(u):
+            """ Prior Transform FUnction"""
+            v = u.copy()
+
+            v[0] = u[0] * 10     
+                # M_GC/r_scale [10^5M_sun/pc]
+
+            v[1] = u[1] * scale_max 
+                # scale [km/s]
+
+            logbeta_range = logbeta_max - logbeta_min
+            v[2] = u[2] * logbeta_range + logbeta_min       
+                # log beta
+
+            return v 
+
+        return prior_2
+
+
+### Log Likelihood ###
+
+def set_likelihood(x, y):
+    
+    """
+    Setup likelihood function.
+    
+    Parameters
+    ----------
+    x: 1d array
+    y: 1d array
+    
+    Returns
+    ----------
+    loglike : log-likelihood function for fitting
+    
+    """
+    
+    def loglike_2(v):
+        """ likelihood function """
+        
+        # parameter
+        r_scale = 10
+        M_gc = v[0] * r_scale * 1e5
+        scale = v[1]
+        beta = 10**v[2]
+        
+        # mean value
+        ypred = np.mean(y)
+        
+        # sigma profile
+        sigma2 = sigmar_2(x, M_gc, r_scale, beta).to_value((u.km/u.s)**2)
+
+        # scaled sigma profile
+        sigma2 = sigma2 / scale**2
+
+        # residual
+        residsq = (ypred - y)**2 / sigma2
+        
+        # log likelihood
+        loglike = -0.5 * np.sum(residsq + np.log(2 * np.pi * sigma2))
+
+        if not np.isfinite(loglike):
+            loglike = -1e100
+
+        return loglike
+    
+    return loglike_2
+
+
 class DynamicNestedSampler:
     
     """ 

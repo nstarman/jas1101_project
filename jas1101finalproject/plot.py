@@ -497,14 +497,15 @@ def plot_binned_sigma_profile(r, pm, bins=None,
     return fig
 
 
-def plot_model_sigma_profile(r, M_gc, r_scale, beta,
-                             N_mod=25, cmap='magma', fig=None):
+def plot_model_sigma_profile(r, M_gc, r_scale,
+                             beta_max=1e-2, N_mod=25,
+                             cmap='magma', fig=None):
     
     """ r: normalized radius """
     from .fit import sigmar_2
     
     models = np.zeros((N_mod, len(r)))
-    f_BH_amp = np.linspace(1e-4, 1e-2, N_mod)
+    f_BH_amp = np.linspace(1e-4, beta_max, N_mod)
     
     if fig is None:
         fig, ax = plt.subplots(1,1, figsize=(8,6))
