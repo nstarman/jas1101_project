@@ -127,6 +127,15 @@ class GlobularCluster(object):
         self.pm: float = (self.table["pm"] / self.pmc_ang).to_value(dmls)
         self.pmx: float = (self.table["pmx"] / self.pmc_ang).to_value(dmls)
         self.pmy: float = (self.table["pmy"] / self.pmc_ang).to_value(dmls)
+            
+            
+        # pm error (added)
+        pm_e_ang = np.hypot(self.table['pmx_e'],
+                            self.table['pmy_e'])
+        self.table['pm_e'] = pm_e_ang
+        self.pm_e: float = (pm_e_ang / self.pmc_ang).to_value(dmls)
+    
+            
         # elif pm_norm_method == "GMM":
         #     raise ValueError("Not yet implemented")
         # else:

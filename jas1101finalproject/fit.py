@@ -55,37 +55,52 @@ def sigmar_2(x, M_gc, r_scale, beta):
 ### Prior Transform ###
 
 def set_prior(kind = 'scale',
-              scale_max=10, scale_min=0,
-              logbeta_max=-2, logbeta_min=-5):
+              M_max=20, r_max=30,
+              scale_max=25,
+              mu_ol_max=25,
+              logbeta_max=-1,
+              logbeta_min=-5):
     
     """
     Setup prior transforms for models. 
     
     Parameters
     ----------
-    scale_min : min scale
-    scale_max : max scale
+    
+    kind : 'physical' or 'scale'
+    
+    'physical' - fit by physical units 
+        M_max : max M_GC
+        r_max : max r_scale
+    
+    'scale' - fit scale as a parameter
+        scale_max : max scale
+        
+    'scale-outlier' - fit scale + include outlier
+        scale_max : max scale
+        mu_ol_max : max outlier mean 
     
     logbeta_min : min log beta
     logbeta_max : max log beta
 
     Returns
     ----------
-    prior_tf : prior transform function for fitting
+    prior : prior transform function for fitting
+    ndim : number of dimension
     
     """
     
-    if kind == 'scale':
+    if kind == 'physical':
         
-        def prior_2(u):
-            """ Prior Transform FUnction"""
+        def prior_1(u):
+            """ Prior Transform Function"""
             v = u.copy()
 
-            v[0] = u[0] * 10     
-                # M_GC/r_scale [10^5M_sun/pc]
+            v[0] = u[0] * M_max
+                # M_GC [10^5 M_sun]
 
-            v[1] = u[1] * scale_max 
-                # scale [km/s]
+            v[1] = u[1] * r_max
+                # r_scale [pc]
 
             logbeta_range = logbeta_max - logbeta_min
             v[2] = u[2] * logbeta_range + logbeta_min       
@@ -93,20 +108,66 @@ def set_prior(kind = 'scale',
 
             return v 
 
-        return prior_2
+        return prior_1, 3
+
+    elif kind == 'scale':
+        
+        def prior_2(u):
+            """ Prior Transform Function"""
+            v = u.copy()
+
+            v[0] = u[0] * 10     
+                # M_GC/r_scale [10^5M_sun/pc]
+            v[1] = u[1] * scale_max 
+                # scale [km/s]
+            logbeta_range = logbeta_max - logbeta_min
+            v[2] = u[2] * logbeta_range + logbeta_min       
+                # log beta
+
+            return v 
+
+        return prior_2, 3
+    
+    elif kind == 'scale-outlier':
+        
+        def prior_3(u):
+            v = u.copy()
+
+            v[0] = u[0]               
+                # M_GC [10^5 M_sun] / r_scale [pc]
+            v[1] = u[1] * scale_max 
+                # scale [km/s]
+            logbeta_range = logbeta_max - logbeta_min
+            v[2] = u[2] * logbeta_range + logbeta_min       
+                # log beta
+            v[3] = u[3] * 4.7 - 5     
+                # log prob outlier
+            v[4] = (u[4] - 0.5) * 2 * mu_ol_max     
+                # mean outlier
+            v[5] = u[5] * 100         
+                # variance outlier
+
+            return v 
+        
+        return prior_3, 6
 
 
 ### Log Likelihood ###
 
-def set_likelihood(x, y):
+def set_likelihood(x, y, y_err=None, kind='scale'):
     
     """
     Setup likelihood function.
     
     Parameters
     ----------
-    x: 1d array
-    y: 1d array
+    x : 1d array
+    y : 1d array
+    y_err : error of y, 1d array
+    kind : 'physical' or 'scale', str
+        'physical' - fit by physical units 
+        'scale' - fit scale as a parameter
+        'scale-outlier' - fit scale + include outlier
     
     Returns
     ----------
@@ -114,38 +175,132 @@ def set_likelihood(x, y):
     
     """
     
-    def loglike_2(v):
-        """ likelihood function """
-        
-        # parameter
-        r_scale = 10
-        M_gc = v[0] * r_scale * 1e5
-        scale = v[1]
-        beta = 10**v[2]
-        
-        # mean value
-        ypred = np.mean(y)
-        
-        # sigma profile
-        sigma2 = sigmar_2(x, M_gc, r_scale, beta).to_value((u.km/u.s)**2)
-
-        # scaled sigma profile
-        sigma2 = sigma2 / scale**2
-
-        # residual
-        residsq = (ypred - y)**2 / sigma2
-        
-        # log likelihood
-        loglike = -0.5 * np.sum(residsq + np.log(2 * np.pi * sigma2))
-
-        if not np.isfinite(loglike):
-            loglike = -1e100
-
-        return loglike
+    if y_err is None:
+        y_err = np.zeros_like(y)
     
-    return loglike_2
+    if kind == 'physical':
+        
+        def loglike_1(v):
+            
+            # parameter
+            M_gc, r_scale, logbeta = v
 
+            M_gc = M_gc * 1e5
 
+            beta = 10**logbeta
+
+            # mean value
+            ypred = np.mean(y)
+            
+            # sigma profile in km/s
+            sigma2_phy = sigmar_2(x, M_gc, r_scale, beta).to_value((u.km/u.s)**2)
+
+            # normalized by sigma at r = 1
+            sigma2_n = sigmar_2(1, M_gc, r_scale, beta).to_value((u.km/u.s)**2)
+            
+            # scaled sigma profile
+            sigma2 = sigma2_phy / sigma2_n
+
+            # total sigma2 with scaled error
+            sigma2_tot = sigma2 * (1 + y_err / y)
+            
+            # residual
+            residsq = (ypred - y)**2 / sigma2_tot
+            
+            # log likelihood
+            loglike = -0.5 * np.sum(residsq + np.log(2 * np.pi * sigma2_tot))
+
+            if not np.isfinite(loglike):
+                loglike = -1e100
+
+            return loglike_1
+
+    elif kind == 'scale':
+        
+        def loglike_2(v):
+            """ likelihood function """
+
+            # parameter
+            r_scale = 10
+            M_gc = v[0] * r_scale * 1e5
+            scale = v[1]
+            beta = 10**v[2]
+
+            # mean value
+            ypred = np.mean(y)
+
+            # sigma profile in km/s
+            sigma2_phy = sigmar_2(x, M_gc, r_scale, beta).to_value((u.km/u.s)**2)
+
+            # scaled sigma profile
+            sigma2 = sigma2_phy / scale**2
+            
+            # total sigma2 with scaled error
+            sigma2_tot = sigma2 * (1 + y_err / y)
+
+            # residual
+            residsq = (ypred - y)**2 / sigma2_tot
+
+            # log likelihood
+            loglike = -0.5 * np.sum(residsq + np.log(2 * np.pi * sigma2_tot))
+
+            if not np.isfinite(loglike):
+                loglike = -1e100
+
+            return loglike
+
+        return loglike_2
+    
+    elif kind == 'scale-outlier':
+        
+        def loglike_3(v):
+            """ likelihood function """
+
+            # parameter
+            r_scale = 10
+            M_gc = v[0] * r_scale * 1e5
+            scale = v[1]
+            beta = 10**v[2]
+            p_ol = 10**v[3]
+            y_ol = v[4]
+            var_ol = v[5]
+
+            # mean value
+            ypred = np.mean(y)
+
+            # sigma profile in km/s
+            sigma2_phy = sigmar_2(x, M_gc, r_scale, beta).to_value((u.km/u.s)**2)
+
+            # scaled sigma profile
+            sigma2 = sigma2_phy / scale**2
+            
+            # total sigma2 with scaled error
+            sigma2_tot = sigma2 * (1 + y_err / y)
+
+            # residual
+            residsq = (ypred - y)**2 / sigma2_tot
+            
+            # total sigma2 for outlier
+            sigma2_tot_ol = sigma2_tot + var_ol
+            
+            # residual for outlier
+            residsq_ol = (y_ol - y)**2 / sigma2_tot_ol
+            
+            # foreground & background log prob
+            logp_fg = np.log(1-p_ol) - 0.5 * np.log(2 * np.pi * sigma2) - 0.5 * residsq
+            logp_bg = np.log(p_ol) - 0.5 * np.log(2 * np.pi * sigma2_tot_ol) - 0.5 * residsq_ol
+
+            # log likelihood
+            loglike = np.sum(np.logaddexp(logp_fg, logp_bg))
+
+            if not np.isfinite(loglike):
+                loglike = -1e100
+
+            return loglike
+
+        return loglike_3
+
+    
 class DynamicNestedSampler:
     
     """ 
@@ -194,7 +349,7 @@ class DynamicNestedSampler:
                                                 use_pool=self.use_pool)
         self.dsampler = dsampler
         
-    ## run
+    ### run ###
     
     def run_fitting(self,
                     nlive_init=100,
@@ -237,7 +392,7 @@ class DynamicNestedSampler:
         self.pool.join()
     
     
-    ## result
+    ### read/save/load result ###
     
     @property
     def results(self):
@@ -245,7 +400,15 @@ class DynamicNestedSampler:
         return res
     
     def get_params(self, return_sample=False):
-        return get_params_fit(self.results, return_sample)
+        """
+        Get parameters meadian/mean/covariance
+        return samples if samples_eq is True.
+        """
+        
+        output = get_params_fit(self.results, return_sample)
+            
+        return output
+    
     
     def save_results(self, filename, fit_info=None, save_dir='.'):
         res = {}
@@ -261,7 +424,8 @@ class DynamicNestedSampler:
         
         self.res = res
     
-    ## plot
+    
+    ### plot ###
     
     def cornerplot(self, truths=None, labels=None, figsize=(12,10)):
         
