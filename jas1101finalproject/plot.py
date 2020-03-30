@@ -164,7 +164,8 @@ def rand_color(N=1):
 # --------------------------------------------------------------------------
 
 
-def colorbar_non_mappable(fig, ax, cmap="magma", vmin=0, vmax=1):
+def colorbar_non_mappable(fig, ax, clabel='',
+                          cmap="magma", vmin=0, vmax=1):
     """Colorbar non-mappable.
 
     Parameters
@@ -186,7 +187,7 @@ def colorbar_non_mappable(fig, ax, cmap="magma", vmin=0, vmax=1):
     cb = mpl.colorbar.ColorbarBase(
         ax_cb, cmap=plt.cm.get_cmap(cmap), norm=norm, orientation="vertical"
     )
-    cb.set_label("M$_{BH}$")
+    cb.set_label(clabel)
     fig.add_axes(ax_cb)
 
     return fig
@@ -497,14 +498,16 @@ def plot_binned_sigma_profile(r, pm, bins=None,
     return fig
 
 
-def plot_model_sigma_profile(r, M_gc, r_scale, beta,
-                             N_mod=25, cmap='magma', fig=None):
+def plot_model_sigma_profile(r, M_gc, r_scale,
+                             normalize=True,
+                             beta_max=1e-2, N_mod=25,
+                             cmap='magma', fig=None):
     
     """ r: normalized radius """
     from .fit import sigmar_2
     
     models = np.zeros((N_mod, len(r)))
-    f_BH_amp = np.linspace(1e-4, 1e-2, N_mod)
+    f_BH_amp = np.linspace(1e-4, beta_max, N_mod)
     
     if fig is None:
         fig, ax = plt.subplots(1,1, figsize=(8,6))
@@ -517,9 +520,14 @@ def plot_model_sigma_profile(r, M_gc, r_scale, beta,
     for i, f_bh in enumerate(f_BH_amp[:-1]):
         sig2 = sigmar_2(r, M_gc, r_scale, f_bh)
         sig2_n = sigmar_2(1, M_gc, r_scale, f_bh)
-
-        # normalize by sigma at r = 1
-        mod = np.sqrt(sig2 / sig2_n)
+        
+        if normalize:
+            # normalize by sigma at r = 1
+            sig2 /= sig2_n
+        else:
+            sig2 = sig2.value
+        
+        mod = np.sqrt(sig2)
         models[i] = mod
 
         if i>0:
@@ -531,8 +539,9 @@ def plot_model_sigma_profile(r, M_gc, r_scale, beta,
              ha="center", va="center", transform=ax.transAxes)
 
     ax = colorbar_non_mappable(fig, ax,
-                               vmin=f_BH_amp.min()*M_gc,
-                               vmax=f_BH_amp.max()*M_gc)
+                               clabel="f$_{BH}$",
+                               vmin=f_BH_amp.min(),
+                               vmax=f_BH_amp.max())
     
     return (fig, ax)
 
