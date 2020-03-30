@@ -142,12 +142,22 @@ def plot_4(GC, clus):
 # ------------------------------------------------------------------------
 
 
-def plot_5(GC, sel):
+def plot_5(GC, sel, bins):
+    plt.figure()    
+    fig = plot.plot_binned_sigma_profile(r=GC.r[sel],
+                                       pm=GC.pm[sel],
+                                       bins=bins)
+    plt.savefig(FIGURES + f"{GC.name}/{GC.name}_sigma_rbin.pdf")
+    plt.close()
+
+# ------------------------------------------------------------------------
+
+
+def plot_6(GC, sel):
     plt.figure()
     stats.probplot(GC.pm[sel], dist="norm", plot=plt.gca())
     plt.savefig(FIGURES + f"{GC.name}/{GC.name}_QQ.pdf")
     plt.close()
-
 
 ##############################################################################
 # Command Line
@@ -228,17 +238,21 @@ def main(
         plot_3(GC)
 
         # Data stack
-        X0 = np.vstack([GC.r, GC.pm]).T
+        X0 = np.vstack([GC.r, GC.pmx, GC.pmy]).T
 
         # clip major outliers
         good_pm = utils.clip_quantile_nd(
-            X0, z_quantile=[0.001, 0.999], ind_clip=[0, 1]
+            X0, z_quantile=[0.001, 0.999], ind_clip=[1, 2]
         )
+        
+        # clip in radius
+        r_min, r_max = 0.25, 1
+        good_r = (X0[:,0]>r_min) & (X0[:,0]<r_max)
 
-        if sum(good_pm) == 0:
+        if sum(good_pm & good_r) == 0:
             print("no good pm")
 
-        X = X0[good_pm]
+        X = X0[good_pm & good_r]
 
         # cluster data
         try:
@@ -255,15 +269,19 @@ def main(
             is_mp = clus.predict_main_pop()
 
             # boolean membership probability
-            member_prob = np.zeros(len(GC.pmx))
-            sel = np.where(good_pm)[0][is_mp]
+            member_prob = np.zeros(len(X0))
+            sel = np.where(good_pm & good_r)[0][is_mp]
             member_prob[sel] = 1
-
-            plot_5(GC, sel)
+            
+            # plot std of pm in radial bins
+#             plot_5(GC, sel, bins=np.linspace(r_min, r_max, 5))
+            
+            # qq plot
+            plot_6(GC, sel)
 
         # add to GC table
         df = data.load_globular_cluster(name)
-        df["member_prob_GMM"] = member_prob
+        df["member_prob_DB"] = member_prob
 
         # save
         output_dir: str = opts.output_dir

@@ -470,9 +470,71 @@ def plot_binned_profile(r, pm, bins=None, z_clip=None):
         )
         plt.xlabel("pm [mas/yr]")
         plt.ylabel("density")
-        plt.show()
 
     return fig
+
+
+def plot_binned_sigma_profile(r, pm, bins=None,
+                            color='k', label=None, fig=None):
+    from astropy.stats import mad_std
+    
+    if bins is None:
+        raise Exception("need to pass bins or call bin_profile")
+    
+    r_rbin, z_rbin, z_bins = profile_binning(r, pm,
+                                             bins=bins,
+                                             plot=False)
+
+    std_rbin = np.array([mad_std(z_bins[i]['pm'])
+                         for i in range(len(z_bins))])
+    
+    if fig is None:
+        fig = plt.figure()
+    plt.plot(r_rbin, std_rbin, 'o-', color=color, label=label)
+    plt.xlabel("r")
+    plt.ylabel(r"$\sigma$")
+    
+    return fig
+
+
+def plot_model_sigma_profile(r, M_gc, r_scale, beta,
+                             N_mod=25, cmap='magma', fig=None):
+    
+    """ r: normalized radius """
+    from .fit import sigmar_2
+    
+    models = np.zeros((N_mod, len(r)))
+    f_BH_amp = np.linspace(1e-4, 1e-2, N_mod)
+    
+    if fig is None:
+        fig, ax = plt.subplots(1,1, figsize=(8,6))
+    else:
+        ax = plt.gca()
+    
+    cmap_list = np.linspace(0, 1, N_mod-1)
+    ax.set_prop_cycle('color', plt.cm.get_cmap(cmap)(cmap_list))
+    
+    for i, f_bh in enumerate(f_BH_amp[:-1]):
+        sig2 = sigmar_2(r, M_gc, r_scale, f_bh)
+        sig2_n = sigmar_2(1, M_gc, r_scale, f_bh)
+
+        # normalize by sigma at r = 1
+        mod = np.sqrt(sig2 / sig2_n)
+        models[i] = mod
+
+        if i>0:
+            plt.fill_between(r, models[i-1]-0.001, mod+0.001, edgecolor="None")
+
+    plt.xlabel("r (normed)")
+    plt.ylabel("$\sigma_r$ (normed)")
+    plt.text(0.75,0.8,"Plummer Sph\n+ BH", fontsize=20,
+             ha="center", va="center", transform=ax.transAxes)
+
+    ax = colorbar_non_mappable(fig, ax,
+                               vmin=f_BH_amp.min()*M_gc,
+                               vmax=f_BH_amp.max()*M_gc)
+    
+    return (fig, ax)
 
 
 # /def

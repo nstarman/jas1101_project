@@ -108,9 +108,9 @@ class GlobularCluster(object):
             self.table: Table = self.table_full[
                 self.table_full["memberprob"] >= member_threshold
             ]
-        elif member_method == "GMM":
+        elif member_method == "DBScan":
             self.table: Table = self.table_full[
-                self.table_full["memberprob_GMM"] >= member_threshold
+                self.table_full["memberprob_DB"] >= member_threshold
             ]
         else:
             raise ValueError("Not an allowed value")

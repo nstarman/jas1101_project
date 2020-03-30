@@ -86,7 +86,8 @@ class DBSCAN_Clustering:
             X = self.X
 
         if min_samples is None:
-            min_samples = int(X.shape[0] * min_frac)
+            # Use min_frac if min_samples is not given
+            min_samples = max(2, int(X.shape[0] * min_frac))
 
         if DBSCAN.__name__ == "DBSCAN":
             if self.verbose:
