@@ -115,3 +115,6 @@ pip-wheel-metadata/
 /jas1101finalproject/scripts/get_globular_clusters/data/gczs
 /jas1101finalproject/scripts/get_globular_clusters/figures
 /jas1101finalproject/scripts/normalize_globular_clusters/figures
+/.vscode
+/.eggs
+/sftp-config.json
