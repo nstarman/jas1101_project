@@ -171,3 +171,7 @@ sftp-config\.json
 *.fls
 *.fdb_latexmk
 /.vscode
+/jas1101finalproject/scripts/normalize_globular_clusters/figures
+/jas1101finalproject/scripts/get_globular_clusters/figures
+/jas1101finalproject/scripts/get_globular_clusters/data/gczs
+/jas1101finalproject/scripts/get_globular_clusters/data/gcts
