@@ -32,4 +32,14 @@ This project is licensed under the BSD-3 License - see the [LICENSE](LICENSE.md)
 
 Bibtex
 ```
+@software{jas1101finalproject,
+  author       = {{Starkman}, Nathaniel and {Qing}, Liu and {Ngo}, Vivian}
+  title        = {JAS 1101 Final Project},
+  month        = apr,
+  year         = 2020,
+  publisher    = {Zenodo},
+  version      = {project-submission},
+  doi          = {10.5281/zenodo.3747869},
+  url          = {https://doi.org/10.5281/zenodo.3747869}
+}
 ```
