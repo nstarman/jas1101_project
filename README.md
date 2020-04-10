@@ -1,19 +1,12 @@
-# Project Title
+# JAS 1101 Final Project
 
-One Paragraph of project description goes here
+The study of intermediate mass black holes (IMBH) is important as they can enhance our understanding of the evolutionary connections between stellar black holes and super-massive black holes. This study aims to determine the statistical significance of IMBHs in the center of globular clusters (GCs) as a population and whether a black hole mass - velocity dispersion correlation of holds for IMBHs. This study utilizes a combination of fundamental data analysis methods from astronomy as well as statistics, notably Bayesian modeling, to determine constraints on black hole masses. The results indicate that the constraints derived are promising. The code for this study is available here. The full analysis pipeline is available as a console script upon code installation.
 
 ## Installing
 
-clone this repository
-run ./envs/project_start_script.sh
-this will make the correct conda environment and install it into IPython
+1. clone this repository
+2. Run `python setup.py install` after mmoving to the project directory.
 
-
-## Notebooks
-
-
-### Notebook 1
-[Notebook](notebooks/_sample/notebook.ipynb)
 
 
 <br><br><br>
@@ -23,7 +16,9 @@ this will make the correct conda environment and install it into IPython
 
 ## Authors
 
-* **AUTHOR NAME** - *ROLE* - [WEBSITE](https://github.com/nstarman)
+* **Nathaniel Starkman**
+* **Qing Liu**
+* **Vivian Ngo**
 
 
 ## Using this Work
@@ -34,10 +29,6 @@ This project is licensed under the BSD-3 License - see the [LICENSE](LICENSE.md)
 
 
 ## Citing This Work
-
-* Journal :
-* ADS     : 
-* arXiv   :
 
 Bibtex
 ```
