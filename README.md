@@ -5,7 +5,7 @@ The study of intermediate mass black holes (IMBH) is important as they can enhan
 ## Installing
 
 1. clone this repository
-2. Run `python setup.py install` after mmoving to the project directory.
+2. Run `python setup.py install` after moving to the project directory.
 
 
 
