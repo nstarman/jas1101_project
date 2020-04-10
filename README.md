@@ -23,7 +23,7 @@ The study of intermediate mass black holes (IMBH) is important as they can enhan
 
 ## Using this Work
 
-[![DOI](https://zenodo.org/badge/185856353.svg)](https://zenodo.org/badge/latestdoi/185856353)
+[![DOI](https://zenodo.org/badge/235708912.svg)](https://zenodo.org/badge/latestdoi/235708912)
 
 This project is licensed under the BSD-3 License - see the [LICENSE](LICENSE.md) file for details
 
