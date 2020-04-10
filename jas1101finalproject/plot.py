@@ -164,7 +164,7 @@ def rand_color(N=1):
 # --------------------------------------------------------------------------
 
 
-def colorbar_non_mappable(fig, ax, clabel='',
+def colorbar_non_mappable(fig, ax, clabel='', ctitle='',
                           cmap="magma", vmin=0, vmax=1):
     """Colorbar non-mappable.
 
@@ -185,9 +185,10 @@ def colorbar_non_mappable(fig, ax, clabel='',
     ax_cb = divider.new_horizontal(size="5%", pad=0.1)
     norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
     cb = mpl.colorbar.ColorbarBase(
-        ax_cb, cmap=plt.cm.get_cmap(cmap), norm=norm, orientation="vertical"
+        ax_cb, cmap=plt.cm.get_cmap(cmap), norm=norm,orientation="vertical"
     )
     cb.set_label(clabel)
+    cb.ax.set_title(ctitle)
     fig.add_axes(ax_cb)
 
     return fig
@@ -500,7 +501,9 @@ def plot_binned_sigma_profile(r, pm, bins=None,
 
 def plot_model_sigma_profile(r, M_gc, r_scale,
                              normalize=True,
-                             beta_max=1e-2, N_mod=25,
+                             beta_max=1e-2, 
+                             N_mod=25,
+                             r_n=1,
                              cmap='magma', fig=None):
     
     """ r: normalized radius """
@@ -519,10 +522,10 @@ def plot_model_sigma_profile(r, M_gc, r_scale,
     
     for i, f_bh in enumerate(f_BH_amp[:-1]):
         sig2 = sigmar_2(r, M_gc, r_scale, f_bh)
-        sig2_n = sigmar_2(1, M_gc, r_scale, f_bh)
+        sig2_n = sigmar_2(r_n, M_gc, r_scale, f_bh)
         
         if normalize:
-            # normalize by sigma at r = 1
+            # normalize by sigma at r = r_n
             sig2 /= sig2_n
         else:
             sig2 = sig2.value

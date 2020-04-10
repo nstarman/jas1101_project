@@ -137,7 +137,7 @@ def set_prior(kind = 'scale',
 
         return prior_2, 3
     
-    elif kind == 'scale-outlier':
+    elif kind == 'scale-outlier0':
         
         def prior_3(u):
             v = u.copy()
@@ -160,9 +160,30 @@ def set_prior(kind = 'scale',
         
         return prior_3, 6
     
-    elif kind == 'scale-outlier-range':
+    elif kind == 'scale-outlier':
         
         def prior_4(u):
+            v = u.copy()
+
+            v[0] = u[0] * 10             
+                # Scaling
+            logbeta_range = logbeta_max - logbeta_min
+            v[1] = u[1] * logbeta_range + logbeta_min       
+                # log beta
+            v[2] = u[2] * 4. - 5     
+                # log prob outlier
+            v[3] = (u[3] - 0.5) * 2 * mu_ol_max     
+                # mean outlier
+            v[4] = u[4] * 10         
+                # variance outlier
+
+            return v 
+        
+        return prior_4, 5
+    
+    elif kind == 'scale-outlier-range':
+        
+        def prior_5(u):
             v = u.copy()
 
             v[0] = u[0]               
@@ -186,7 +207,9 @@ def set_prior(kind = 'scale',
 
             return v 
         
-        return prior_4, 8
+        return prior_5, 8
+    
+    
 
 
 ### Log Likelihood ###
@@ -294,7 +317,7 @@ def set_likelihood(x, y, y_err=None, kind='scale'):
 
         return loglike_2
     
-    elif kind == 'scale-outlier':
+    elif kind == 'scale-outlier0':
         
         def loglike_3(v):
             """ likelihood function """
@@ -343,9 +366,58 @@ def set_likelihood(x, y, y_err=None, kind='scale'):
 
         return loglike_3
     
-    elif kind == 'scale-outlier-range':
+    elif kind == 'scale-outlier':
         
         def loglike_4(v):
+            """ likelihood function """
+
+            # parameter
+            r_scale = 10
+            M_gc = 5e5
+            scale = v[0]
+            beta = 10**v[1]
+            p_ol = 10**v[2]
+            y_ol = v[3]
+            var_ol = v[4]
+
+            # mean value
+            ypred = np.mean(y)
+
+            # sigma profile in km/s
+            sigma2_phy = sigmar_2(x, M_gc, r_scale, beta).to_value((u.km/u.s)**2)
+
+            # scaled sigma profile
+            sigma2 = sigma2_phy / scale**2
+            
+            # total sigma2 with scaled error
+            sigma2_tot = sigma2 * (1 + y_err / y)
+
+            # residual
+            residsq = (ypred - y)**2 / sigma2_tot
+            
+            # total sigma2 for outlier
+            sigma2_tot_ol = sigma2_tot + var_ol
+            
+            # residual for outlier
+            residsq_ol = (y_ol - y)**2 / sigma2_tot_ol
+            
+            # foreground & background log prob
+            logp_fg = np.log(1-p_ol) - 0.5 * np.log(2 * np.pi * sigma2) - 0.5 * residsq
+            logp_bg = np.log(p_ol) - 0.5 * np.log(2 * np.pi * sigma2_tot_ol) - 0.5 * residsq_ol
+
+            # log likelihood
+            loglike = np.sum(np.logaddexp(logp_fg, logp_bg))
+
+            if not np.isfinite(loglike):
+                loglike = -1e100
+
+            return loglike
+
+        return loglike_4
+    
+    elif kind == 'scale-outlier-range':
+        
+        def loglike_5(v):
             """ likelihood function """
 
             # parameter
@@ -401,7 +473,7 @@ def set_likelihood(x, y, y_err=None, kind='scale'):
 
             return loglike
 
-        return loglike_4
+        return loglike_5
 
     
 class DynamicNestedSampler:
@@ -530,16 +602,15 @@ class DynamicNestedSampler:
     
     ### plot ###
     
-    def cornerplot(self, truths=None, labels=None, figsize=(12,10)):
+    def cornerplot(self, truths=None, labels=None, figsize=(12,10), *args, **kwargs):
         
         fig, axes = plt.subplots(self.ndim, self.ndim,
                                  figsize=figsize)
         
         dyplot.cornerplot(self.results, truths=truths, labels=labels, 
                           color="royalblue", truth_color="indianred",
-                          title_kwargs={'fontsize':18, 'y': 1.04},
                           label_kwargs={'fontsize':16}, show_titles=True,
-                          fig=(fig, axes))
+                          fig=(fig, axes), *args, **kwargs)
         
     def cornerbound(self, figsize=(10,10), labels=None):
         
@@ -623,3 +694,92 @@ def load_nested_fitting_result(filename='fit.res'):
     with open(filename, "rb") as file:
         res = dill.load(file)
     return res
+
+## Pipeline
+def Fit_by_GC_name(gc_name,
+                   cut_nsigma=3, thre_dens=0.85,
+                   nlive_init=600, maxbatch=10,
+                   display_binning=False):
+    
+    from jas1101finalproject import GlobularCluster
+    import seaborn as sns
+    
+    # Read GC
+    print(gc_name)
+    GC = GlobularCluster.from_name(gc_name)
+    
+    # uncertainty cut
+    good = GC.pm_e < cut_nsigma
+    
+    # Plot distribution in radius
+    p = sns.distplot(GC.r[good], color='blue')
+    x_kde, y_kde = p.get_lines()[0].get_data()
+    
+    # Choose fitting range
+    x_peak = x_kde[np.argmax(y_kde)]
+    y_sol = y_kde.max() * thre_dens
+    left, right = x_kde<x_peak, x_kde>x_peak
+    x_left, x_right = [x_kde[side][np.argmin(abs(y_kde-y_sol)[side])] for side in (left, right)]
+    
+    print("Left:{0:.3f}  Right:{1:.3f}".format(x_left, x_right))
+
+    plt.axhline(y_sol, color='k', ls='--')
+    plt.xlim(0,2)
+    plt.xlabel('Radius (normed)')
+    plt.ylabel('Density')
+    plt.axvline(x_left)
+    plt.axvline(x_right)
+    plt.show()
+    
+    r_min, r_max = x_left, x_right
+        
+    if display_binning:
+        bins = np.linspace(r_min, r_max, 5)
+
+        fig = plot.plot_binned_sigma_profile(GC.r, GC.pm, bins=bins, color='steelblue', label='V19 pmscale')
+        fig = plot.plot_binned_sigma_profile(GC.r[good], GC.pm[good], bins=bins, fig=fig, color='blue', label='V19 pmscale good')
+
+        plt.legend(loc=2)
+
+        (fig, ax) = plot.plot_model_sigma_profile(bins, 1e5, 10, beta_max=0.1, N_mod=25, r_n=r_max, fig=fig)
+        plt.show()
+        
+    # r_min, r_max = 0.1, 1.5
+    r, pm, pm_e = GC.r, GC.pm, GC.pm_e
+
+    # conditional cut
+    cond = (r>=r_min) & (r<=r_max) & good
+
+    # x and y, y_err for fitting
+    pm, pm_e = pm[cond], pm_e[cond]
+    r = r[cond]
+    
+    kind = 'scale-outlier'
+
+    # Setup priors and likelihood
+    prior, ndim = set_prior(kind=kind, logbeta_max=-1, scale_max=25, mu_ol_max=25)
+    loglike = set_likelihood(r, pm, y_err=pm_e, kind=kind)
+    
+    # Fitting
+    dsampler = DynamicNestedSampler(loglike,
+                                    prior, ndim)
+    dsampler.run_fitting(nlive_init=nlive_init,
+                         maxbatch=maxbatch)
+    
+    # Plot result joint and marginal PDF
+    labels = [r'$A$', r'log $f_{BH}$', r'log $p_{b}$', 
+              r'$y_{b}$', r'$V_{b}$']
+    dsampler.cornerplot(figsize=(15,15),labels=labels)
+    plt.savefig("../../pic/CornerPlot_%s.pdf"%gc_name)   
+    plt.show()
+
+    # Get parameters and samples
+    pmed, _, _, samples = dsampler.get_params(return_sample=True)
+    
+    # Get quantiles
+    qs = np.quantile(samples[:,1], [0.68, 0.95, 0.997])
+    
+    print("1/2/3 sigma upper limit BH fraction: {0:.3g}/{1:.3g}/{2:.3g}".format(*10**qs))
+    
+    dsampler.save_results('%s.res'%gc_name, save_dir='../../res')
+    return dsampler
