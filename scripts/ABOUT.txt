@@ -1,9 +1,12 @@
 TITLE   :
 
 
-DESCRIPTION:
-————————————
-Add description of folder contents here
+RUN ORDER:
+——————————
+1. get_globular_clusters
+	This is Eugene Vasiliev's script and needs to be run via his instructions
+2. normalize_globular_clusters
+	
 
 
 FILES:
